@@ -51,7 +51,7 @@ def select_song(songs, title, artist, duration_ms, album=""):
     if not artist_names(artist) or duration_ms <= 0 or not isinstance(songs, list):
         return None
     matches = {}
-    for song in songs[:50]:
+    for song in songs[:60]:
         if not isinstance(song, dict):
             continue
         name = song.get("title", song.get("name", ""))
@@ -115,23 +115,46 @@ def parse_lyrics(data, encoded=True):
     return LyricDocument(lines, document.warnings, document.offset_ms)
 
 
-def load_song_lyrics(snapshot):
+def _search_song(snapshot):
     # Search's query parser is case/order sensitive for some collaborations.
     # Preserve the client's display order and spelling; normalize only to compare.
     singers = [re.sub(r"\s*[（(][^()（）]*[)）]\s*$", "", name).strip()
                for name in re.split(r"[/、,，;&]", snapshot.artist) if name.strip()]
-    query = f"{snapshot.title} {' '.join(singers)}"
-    data = request_json("https://u.y.qq.com/cgi-bin/musicu.fcg", {
-        SEARCH_MODULE: {"module": SEARCH_MODULE, "method": "DoSearchForQQMusicDesktop",
-                        "param": {"search_type": 0, "query": query, "page_num": 1, "num_per_page": 20}}})
-    response = data.get(SEARCH_MODULE, {})
-    if not isinstance(response, dict) or response.get("code") != 0:
-        raise ValueError("QQ 音乐歌曲搜索暂不可用")
-    try:
-        songs = response["data"]["body"]["song"]["list"]
-    except (KeyError, TypeError):
-        raise ValueError("QQ 音乐歌曲搜索返回格式无效") from None
-    song = select_song(songs, snapshot.title, snapshot.artist, snapshot.duration_ms, snapshot.album)
+    # QQ sometimes rejects a title+artists query with code 2001 even when the
+    # title-only or artist-first query works. Bound discovery to three distinct
+    # queries, never broaden the identity checks or repeat a failed query.
+    artist_query = ' '.join(singers)
+    queries = dict.fromkeys((f"{snapshot.title} {artist_query}".strip(), snapshot.title,
+                             f"{artist_query} {snapshot.title}".strip()))
+    candidates, received, last_error = [], False, None
+    for query in queries:
+        try:
+            data = request_json("https://u.y.qq.com/cgi-bin/musicu.fcg", {
+                SEARCH_MODULE: {"module": SEARCH_MODULE, "method": "DoSearchForQQMusicDesktop",
+                                "param": {"search_type": 0, "query": query, "page_num": 1, "num_per_page": 20}}})
+            response = data.get(SEARCH_MODULE, {})
+            if not isinstance(response, dict) or response.get("code") != 0:
+                raise ValueError("QQ 音乐歌曲搜索暂不可用")
+            try:
+                songs = response["data"]["body"]["song"]["list"]
+            except (KeyError, TypeError):
+                raise ValueError("QQ 音乐歌曲搜索返回格式无效") from None
+            if not isinstance(songs, list):
+                raise ValueError("QQ 音乐歌曲搜索返回格式无效")
+            candidates.extend(songs[:20])
+            received = True
+            song = select_song(candidates, snapshot.title, snapshot.artist, snapshot.duration_ms, snapshot.album)
+            if song is not None:
+                return song
+        except (OSError, ValueError, UnicodeError) as error:
+            last_error = error
+    if not received and last_error is not None:
+        raise last_error
+    return None
+
+
+def load_song_lyrics(snapshot):
+    song = _search_song(snapshot)
     if song is None:
         return LyricResult(None, "未找到可靠匹配的 QQ 音乐歌词，可点击“重新获取歌词”重试。")
     mid = song["mid"]

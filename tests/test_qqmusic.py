@@ -125,14 +125,14 @@ class QQParsingTests(unittest.TestCase):
         actual = QQSnapshot("Between Two Worlds (Let's Lament)", "Mili (ミリー)/KIHOW", "Let's Lament", 362626, 3622, False)
         with patch.object(lyrics,"request_json",return_value={lyrics.SEARCH_MODULE:{"code":0,"data":{"body":{"song":{"list":[]}}}}}) as request:
             lyrics.load_song_lyrics(actual)
-            query = request.call_args.args[1][lyrics.SEARCH_MODULE]["param"]["query"]
+            query = request.call_args_list[0].args[1][lyrics.SEARCH_MODULE]["param"]["query"]
             self.assertEqual(query, "Between Two Worlds (Let's Lament) Mili KIHOW")
         with patch.object(lyrics,"request_json",side_effect=[search,OSError("offline"),{"lyric":"[00:01]Hello"}]) as request:
             self.assertIsNotNone(lyrics.load_song_lyrics(snapshot).document)
             self.assertTrue(request.call_args.args[0].startswith("https://c.y.qq.com/lyric/"))
         with patch.object(lyrics,"request_json",return_value={lyrics.SEARCH_MODULE:{"code":0,"data":{"body":{"song":{"list":[]}}}}}) as request:
             self.assertIsNone(lyrics.load_song_lyrics(snapshot).document)
-            self.assertEqual(request.call_count,1)
+            self.assertEqual(request.call_count,3)
         with patch.object(lyrics.urllib.request,"urlopen") as opening:
             opening.return_value.__enter__.return_value.read.return_value=b'{"code":0}'
             lyrics.request_json("https://u.y.qq.com/cgi-bin/musicu.fcg",{"x":1})
@@ -140,6 +140,77 @@ class QQParsingTests(unittest.TestCase):
             self.assertEqual(opening.call_args.kwargs["timeout"],5)
             self.assertNotIn("cookie", {k.lower() for k in req.headers})
             opening.return_value.__enter__.return_value.read.assert_called_once_with(lyrics.MAX_BYTES+1)
+
+    def test_rejected_collaboration_query_falls_back_to_title_with_full_identity(self):
+        snapshot = parse_snapshot(packet(state="Paused"))
+        rejected = {lyrics.SEARCH_MODULE: {"code": 2001}}
+        search = {lyrics.SEARCH_MODULE: {"code": 0, "data": {"body": {"song": {"list": [song()]}}}}}
+        result = {"req_0": {"code": 0, "data": {"lyric": encode("[00:01]Hello")}}}
+        with patch.object(lyrics, "request_json", side_effect=[rejected, search, result]) as request:
+            loaded = lyrics.load_song_lyrics(snapshot)
+        self.assertIsNotNone(loaded.document)
+        self.assertEqual(loaded.mid, song()["mid"])
+        self.assertEqual(request.call_count, 3)
+        queries = [call.args[1][lyrics.SEARCH_MODULE]["param"]["query"]
+                   for call in request.call_args_list[:2]]
+        self.assertEqual(queries, ["Hello Artist", "Hello"])
+
+    def test_fallback_never_substitutes_cover_album_version_or_duration(self):
+        wrong = [song(singer=[{"name": "Cover"}]), song(album={"title": "Other"}),
+                 song(title="Hello (Live)"), song(interval=70)]
+        snapshot = parse_snapshot(packet(state="Paused"))
+        for candidate in wrong:
+            with self.subTest(candidate=candidate), patch.object(lyrics, "request_json", side_effect=[
+                    {lyrics.SEARCH_MODULE: {"code": 2001}},
+                    {lyrics.SEARCH_MODULE: {"code": 2001}},
+                    {lyrics.SEARCH_MODULE: {"code": 0, "data": {"body": {"song": {"list": [candidate]}}}}}
+            ]) as request:
+                self.assertIsNone(lyrics.load_song_lyrics(snapshot).document)
+                self.assertEqual(request.call_count, 3)
+
+    def test_compass_recovers_from_two_rejected_queries_with_artist_first(self):
+        snapshot = QQSnapshot("Compass", "Mili (ミリー)", "Compass", 168940, 1000, True)
+        candidate = song(title="Compass", singer=[{"name": "Mili"}], interval=169,
+                         album={"title": "Compass"}, mid="003XRpUi3uIQIh")
+        search = {lyrics.SEARCH_MODULE: {"code": 0, "data": {"body": {"song": {"list": [candidate]}}}}}
+        result = {"req_0": {"code": 0, "data": {"lyric": encode("[00:01]Hello")}}}
+        with patch.object(lyrics, "request_json", side_effect=[
+                {lyrics.SEARCH_MODULE: {"code": 2001}}, {lyrics.SEARCH_MODULE: {"code": 2001}},
+                search, result]) as request:
+            loaded = lyrics.load_song_lyrics(snapshot)
+        self.assertIsNotNone(loaded.document)
+        self.assertEqual(loaded.mid, "003XRpUi3uIQIh")
+        self.assertEqual([call.args[1][lyrics.SEARCH_MODULE]["param"]["query"]
+                          for call in request.call_args_list[:3]], ["Compass Mili", "Compass", "Mili Compass"])
+
+    def test_empty_primary_search_can_recover_and_known_ambiguity_is_preserved(self):
+        def search(songs):
+            return {lyrics.SEARCH_MODULE: {"code": 0, "data": {"body": {"song": {"list": songs}}}}}
+        snapshot = parse_snapshot(packet(state="Paused"))
+        result = {"req_0": {"code": 0, "data": {"lyric": encode("[00:01]Hello")}}}
+        with patch.object(lyrics, "request_json", side_effect=[search([]), search([song()]), result]):
+            self.assertIsNotNone(lyrics.load_song_lyrics(snapshot).document)
+        with patch.object(lyrics, "request_json", side_effect=[
+                search([song(), song(mid="000aUmSX0YNqVF")]), search([song()]), search([song()])]) as request:
+            self.assertIsNone(lyrics.load_song_lyrics(snapshot).document)
+            self.assertEqual(request.call_count, 3)
+
+    def test_failed_search_is_bounded_to_three_distinct_queries_and_remains_retryable(self):
+        snapshot = parse_snapshot(packet(state="Paused"))
+        for failure in (OSError("offline"), ValueError("bad JSON"),
+                        {lyrics.SEARCH_MODULE: {"code": 2001}},
+                        {lyrics.SEARCH_MODULE: {"code": 0, "data": {"body": {"song": {"list": {}}}}}}):
+            with self.subTest(failure=failure), patch.object(lyrics, "request_json", side_effect=[failure]*3) as request:
+                with self.assertRaises((OSError, ValueError)):
+                    lyrics.load_song_lyrics(snapshot)
+                self.assertEqual(request.call_count, 3)
+
+    def test_no_duplicate_search_when_artist_is_missing(self):
+        snapshot = parse_snapshot(packet(state="Paused", artist=""))
+        with patch.object(lyrics, "request_json", return_value={lyrics.SEARCH_MODULE: {"code": 2001}}) as request:
+            with self.assertRaises(ValueError):
+                lyrics.load_song_lyrics(snapshot)
+            self.assertEqual(request.call_count, 1)
 
 
 class QQPlayerTests(unittest.TestCase):
@@ -281,9 +352,14 @@ class QQEntryTests(unittest.TestCase):
     def test_qq_guide_distinguishes_versions_dependencies_lyrics_and_launch_modes(self):
         guide = (ROOT/'QQMUSIC.md').read_text(encoding='utf-8')
         for value in ('22.52','Windows 10 1809','启动QQ音乐联动.bat','不需要 BetterNCM','整句 LRC',
-                      '逐字演唱强调','严格匹配','重新获取歌词','纯音乐','只读','暂无 QQ 音乐逐字时间'):
+                      '逐字演唱强调','严格匹配','重新获取歌词','纯音乐','只读','暂无 QQ 音乐逐字时间',
+                      '仅歌名','最多','不会随 QQ 音乐自动启动'):
             self.assertIn(value,guide)
         self.assertIn('[QQ 音乐使用说明](QQMUSIC.md)',(ROOT/'README.md').read_text(encoding='utf-8'))
+        for name in ('README.md', 'release/使用说明.txt', 'release/release-notes.md'):
+            text = (ROOT/name).read_text(encoding='utf-8')
+            self.assertIn('不会随 QQ 音乐自动', text)
+            self.assertIn('启动QQ音乐联动.bat', text)
 
     def test_update_build_checks_running_app_before_writes_and_renames_whole_directories(self):
         text = (ROOT/'build.ps1').read_text(encoding='utf-8-sig')
