@@ -11,10 +11,43 @@ ROOT = Path(__file__).resolve().parents[1]
 DOCUMENTS = tuple(ROOT / name for name in ("AGENTS.md", "CHANGELOG.md", "README.md", "验证记录.md", "NETEASE.md",
                                          "产品设计方案.md", "技术文档.md", "THIRD_PARTY_NOTICES.md",
                                          "docs/传播文案.md", "release/release-notes.md", "MACOS.md",
-                                         "release/macos/release-notes.md", "QQMUSIC.md"))
+                                         "release/macos/release-notes.md", "QQMUSIC.md",
+                                         "docs/QQ歌词缓存研究.md"))
 
 
 class WorkflowDocumentationTests(unittest.TestCase):
+    def test_qq_cache_research_distinguishes_measurement_and_product_support(self):
+        text = (ROOT / "docs/QQ歌词缓存研究.md").read_text(encoding="utf-8")
+        for phrase in ("本轮只做研究", "首次播放写盘延迟", "非零偏移尚未验证", "第二台电脑",
+                       "无法唯一确认", "尚未接入缓存", "GPL-3.0-only", "MIT", "1.262–3.845ms"):
+            self.assertIn(phrase, text)
+        self.assertIn("docs/QQ歌词缓存研究.md", (ROOT / "QQMUSIC.md").read_text(encoding="utf-8"))
+
+    def test_qq_cache_research_evidence_is_consistent_and_excludes_lyrics(self):
+        data = json.loads((ROOT / "docs/research/qq-cache-20261011.json").read_text(encoding="utf-8"))
+        self.assertEqual(data["scope"], "research_only")
+        self.assertEqual(data["cache"]["decoded_files"], 2 * len(data["songs"]))
+        self.assertEqual(data["cache"]["failed_files"], 0)
+        self.assertEqual(data["cache"]["network_requests"], 0)
+        self.assertEqual(data["observation"]["playback_commands"], 0)
+        self.assertTrue(data["observation"]["unique_filename_match"])
+        for song in data["songs"]:
+            self.assertGreater(song["original_time_tags"], 0)
+            self.assertGreater(song["word_intervals"], 0)
+            self.assertEqual(song["aligned_original_lines_10ms"], song["original_time_tags"])
+            self.assertTrue(song["original_hash_unchanged"])
+            self.assertEqual(song["invalid_word_starts"], 0)
+            self.assertRegex(song["original_sha256"], r"^[0-9a-f]{64}$")
+            self.assertFalse({"text", "lyrics", "decoded_text", "cookie", "token"} & song.keys())
+        self.assertEqual(len(data["warm_benchmarks"]), 4)
+        for sample in data["warm_benchmarks"]:
+            self.assertEqual(sample["runs"], 100)
+            self.assertLessEqual(sample["median_ms"], sample["p95_ms"])
+            self.assertLessEqual(sample["p95_ms"], sample["max_ms"])
+        self.assertTrue(all(item["rejected"] for item in data["negative_checks"]))
+        for field in ("first_load_write_latency", "nonzero_offset", "second_machine", "memory_reader", "packaged_integration"):
+            self.assertFalse(data["validated"][field])
+
     def test_mac_download_guides_distinguish_architecture_dependency_and_validation(self):
         from tools.package_macos import MAC_RELEASE_TAG, archive_name
         for name in ("README.md", "MACOS.md"):
