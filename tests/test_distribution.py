@@ -267,6 +267,8 @@ class ReleaseTests(unittest.TestCase):
                 (package / f"_internal/PySide6/Qt{name}.pyd").write_bytes(b"Qt runtime")
             (package / "_internal/native").mkdir()
             (package / "_internal/native/qqmusic_smtc.ps1").write_bytes(b"reader")
+            (package / "_internal/compatibility").mkdir()
+            (package / "_internal/compatibility/clients.json").write_bytes((ROOT / "compatibility/clients.json").read_bytes())
             for name in ("Qt6VirtualKeyboard.dll", "qtvirtualkeyboardplugin.dll", "Qt6Pdf.dll", "qpdf.dll"):
                 (package / "_internal" / name).write_bytes(b"unused Qt plugin")
             for name in ("manifest.json", "adapter.js", "index.js"):
@@ -292,6 +294,8 @@ class ReleaseTests(unittest.TestCase):
                         self.assertIn("QQ 音乐版" if player == "qqmusic" else "网易云音乐版", guide.splitlines()[0])
                         self.assertEqual(any(name.endswith("安装网易云联动.bat") for name in names), player == "netease")
                         self.assertEqual(any(name.endswith("卸载网易云联动.bat") for name in names), player == "netease")
+                        self.assertEqual(any(name.endswith("恢复网易云联动.bat") for name in names), player == "netease")
+                        self.assertIn(f"{prefix}/_internal/compatibility/clients.json", names)
                         self.assertEqual(any(name.endswith("启动QQ音乐联动.bat") for name in names), player == "qqmusic")
                         self.assertEqual(any(name.endswith("启动.bat") for name in names), player == "netease")
                         self.assertEqual(any("/plugins/netease/" in name for name in names), player == "netease")

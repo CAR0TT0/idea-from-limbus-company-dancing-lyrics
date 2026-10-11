@@ -9,6 +9,7 @@ from PySide6.QtNetwork import QHostAddress
 from PySide6.QtWebSockets import QWebSocketServer
 from lrc import LyricDocument, LyricLine, TimedWord, chinese_translation
 from app_info import NETEASE_VERSIONS
+from compatibility import client_family
 
 PORT = 38473
 PROTOCOL = 1
@@ -30,11 +31,12 @@ def _number(value, maximum):
     return max(0, min(maximum, value))
 
 
-def validate_snapshot(data: dict) -> dict:
+def validate_snapshot(data: dict, allowed_client=None) -> dict:
     if not isinstance(data, dict) or data.get("protocol") != PROTOCOL:
         raise ValueError("插件协议不兼容")
-    if data.get("client") not in SUPPORTED_CLIENTS:
+    if data.get("client") not in SUPPORTED_CLIENTS and not (allowed_client is not None and data.get("client") == allowed_client):
         raise ValueError("网易云版本尚未验证，请更新联动插件。")
+    client_family(data["client"])
     song = data.get("song")
     if not isinstance(song, dict):
         raise ValueError("歌曲信息无效")
@@ -97,6 +99,7 @@ class NeteasePlayer(QObject):
         self.enabled = True
         self.lyrics_received = False
         self.status = "等待网易云插件连接"
+        self.compatibility_status = "兼容检测：等待歌曲与进度接口。"
         self._anchor = 0.0
         self._at = clock()
         self.has_audio_data = False
@@ -125,6 +128,9 @@ class NeteasePlayer(QObject):
         self.ended = self.duration > 0 and self._anchor >= self.duration
         self.connected = True
         self.status = "已连接网易云音乐" if self.enabled else "网易云插件已关闭歌词"
+        adapter = {"state": "客户端歌词状态", "cache": "本机歌词缓存"}.get(snapshot.get("adapter"), "原有歌词接口")
+        experimental = snapshot["client"] not in SUPPORTED_CLIENTS
+        self.compatibility_status = f"兼容检测通过{'（新版本接口）' if experimental else ''} · 歌曲与进度可用 · {adapter}"
         if jumped:
             self.discontinuity.emit()
         if "document" in snapshot:
@@ -136,6 +142,7 @@ class NeteasePlayer(QObject):
         self._anchor = self.position()
         self.playing = self.connected = False
         self.status = "连接已断开，请在网易云中启用都市回响"
+        self.compatibility_status = "兼容检测：连接已断开，请重开客户端或检查安装。"
         self.lyrics_received = False
         self.document_changed.emit(None)
         self.changed.emit()
@@ -175,9 +182,10 @@ class NeteaseBridge(QObject):
     show_panel = Signal()
     enabled_changed = Signal(bool)
 
-    def __init__(self, player, token, port=PORT, parent=None):
+    def __init__(self, player, token, port=PORT, parent=None, *, allowed_client=None):
         super().__init__(parent)
         self.player, self.token = player, token
+        self.allowed_client = allowed_client
         self.server = QWebSocketServer("FloatingLyrics", QWebSocketServer.SslMode.NonSecureMode, self)
         self.server.setMaxPendingConnections(4)
         self.server.newConnection.connect(self._accept)
@@ -215,7 +223,21 @@ class NeteaseBridge(QObject):
             if data.get("kind") == "show":
                 self.show_panel.emit()
                 return
-            snapshot = validate_snapshot(data)
+            if data.get("kind") == "diagnostic":
+                if data.get("client") not in SUPPORTED_CLIENTS and not (self.allowed_client is not None and data.get("client") == self.allowed_client):
+                    raise ValueError("诊断客户端版本无效")
+                messages = {"playback_missing": "播放进度接口暂不可用，插件将自动重试。",
+                            "interface_changed": "客户端接口已变化，请更新联动插件或恢复上次安装。"}
+                if data.get("code") not in messages:
+                    raise ValueError("诊断字段无效")
+                self.owner = socket
+                self.last_packet = time.monotonic()
+                self.player.disconnect()
+                self.player.status = messages[data["code"]]
+                self.player.compatibility_status = "兼容检测未通过 · " + self.player.status
+                self.player.changed.emit()
+                return
+            snapshot = validate_snapshot(data, self.allowed_client)
             self.owner = socket
             self.last_packet = time.monotonic()
             self.player.apply(snapshot)

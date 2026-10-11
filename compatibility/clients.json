@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "revision": 1,
+  "netease": [
+    {"version": "3.1.40.205461", "status": "verified", "reason": "已验证播放进度及本机歌词缓存联动。"},
+    {"version": "3.1.41.205529", "status": "verified", "reason": "已验证播放进度及客户端歌词状态联动。"}
+  ]
+}

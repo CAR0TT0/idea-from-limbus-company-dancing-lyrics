@@ -69,6 +69,16 @@ def parse_snapshot(data):
                       duration, min(duration, position), state == "Playing", rate)
 
 
+def media_diagnostic(data):
+    if not isinstance(data, dict) or PureWindowsPath(str(data.get("source", ""))).name.lower() != "qqmusic.exe":
+        return "兼容检测：尚未发现 QQ 音乐媒体会话，请开启系统媒体控制并播放歌曲。"
+    if data.get("state") in ("Opened", "Changing"):
+        return "兼容检测：已发现 QQ 音乐，等待歌曲与有效进度；请开始播放。"
+    if data.get("state") in ("Stopped", "Closed"):
+        return "兼容检测：QQ 音乐当前没有播放歌曲。"
+    return "兼容检测：等待有效歌曲与进度。"
+
+
 class QQMusicPlayer(NeteasePlayer):
     source_id = "qqmusic"
     source_name = source_short = "QQ 音乐"
@@ -79,6 +89,7 @@ class QQMusicPlayer(NeteasePlayer):
         super().__init__(clock=clock, parent=parent)
         self.status = "等待 QQ 音乐播放歌曲"
         self.lyric_status = "等待 QQ 音乐歌词"
+        self.compatibility_status = media_diagnostic(None)
         self._rate = 1.0
         self._snapshot = None
         self._generation = 0
@@ -154,6 +165,8 @@ class QQMusicPlayer(NeteasePlayer):
                     self.disconnect("Windows 媒体会话读取失败，正在重试。")
                 elif snapshot is None:
                     self.disconnect()
+                    self.compatibility_status = media_diagnostic(packet.get("snapshot"))
+                    self.changed.emit()
                 else:
                     self.apply_snapshot(snapshot)
             except (ValueError, TypeError, UnicodeError) as error:
@@ -180,6 +193,7 @@ class QQMusicPlayer(NeteasePlayer):
         self.playing, self.connected = snapshot.playing, True
         self.ended = self._anchor >= self.duration
         self.status = "已连接 QQ 音乐 · 播放、暂停与切歌请在 QQ 音乐中操作。"
+        self.compatibility_status = "兼容检测通过 · 系统媒体歌曲与进度可用；歌词采用本地缓存优先、联网兜底。"
         if jumped:
             self.discontinuity.emit()
         if switched and snapshot.key in self._cache:
@@ -230,6 +244,8 @@ class QQMusicPlayer(NeteasePlayer):
     def _apply_lyrics(self, result):
         self.lyrics_received = True
         self.lyric_status = result.message
+        self.compatibility_status = ("兼容检测通过 · 系统媒体歌曲与进度可用 · " +
+                                     ("本地歌词缓存可用" if result.source == "cache" else "歌词使用联网结果或正常回退"))
         if result.source == "cache":
             self._local_signature = result.cache_signature
         self.document_changed.emit(result.document)
@@ -326,6 +342,7 @@ class QQMusicPlayer(NeteasePlayer):
         self.song_id = self.title = self.artist = ""
         self._snapshot = None
         self.status = message or "等待 QQ 音乐播放歌曲 · 请开启 QQ 音乐系统媒体控制。"
+        self.compatibility_status = "兼容检测：" + message if message else media_diagnostic(None)
         self.lyric_status = "等待 QQ 音乐歌词"
         self.lyrics_received = False
         if had_song:

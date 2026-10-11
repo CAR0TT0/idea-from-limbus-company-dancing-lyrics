@@ -75,10 +75,19 @@
         lyricCache=lyric;lyricSong=songId;lyricFields=fields;
         return lyricResult;
     }
-    function snapshot(state, position, enabled, client='3.1.41') {
-        if(!['3.1.40','3.1.41'].includes(client))throw new Error('网易云版本尚未验证');
+    function authorizeClient(client, config={}) {
+        if(typeof client!=='string'||!/^\d{1,6}\.\d{1,6}\.\d{1,6}$/.test(client))throw new Error('网易云版本格式无效');
+        const grant=config.compatibility;
+        if(grant && ['verified','unverified'].includes(grant.status) &&
+                typeof grant.version==='string' && grant.version.split('.').slice(0,3).join('.')===client)return;
+        if(!['3.1.40','3.1.41'].includes(client))throw new Error('网易云版本尚未验证，请重新安装联动并确认实验性安装');
+    }
+    function snapshot(state, position, enabled, client='3.1.41', config={}) {
+        authorizeClient(client,config);
         const p=state.playing;
-        if (!p || !Number.isFinite(p.resourceDuration) || typeof p.resourceName !== 'string') throw new Error('网易云播放器接口已改变');
+        if (!p || !Number.isFinite(p.resourceDuration) || p.resourceDuration<0 || p.resourceDuration>86400 ||
+                typeof p.resourceName !== 'string' || !Array.isArray(p.resourceArtists||[]) ||
+                !Number.isInteger(p.playingState)) throw new Error('网易云播放器接口已改变');
         const songId=String(p.resourceTrackId || '');
         return {protocol:1, client, kind:'snapshot', enabled,
             song:{id:songId,title:p.resourceName,artist:(p.resourceArtists||[]).map(x=>x.name).filter(Boolean).join(' / ')},
@@ -145,6 +154,13 @@
             return {...state,'async:lyric':this.lyric};
         }
     }
+    function adaptiveLyrics(state, reader) {
+        const lyric=state['async:lyric'];
+        // A stale ID is still an ID: never relabel another song's lyrics.
+        if(lyric && lyric.resourceTrackId!==undefined && lyric.resourceTrackId!==null)
+            return {state,adapter:'state'};
+        return {state:reader.state(state),adapter:'cache'};
+    }
     class PlaybackEvents {
         constructor(getStreams,getPlaying,onUpdate,onError=()=>{}) {
             this.getStreams=getStreams;this.getPlaying=getPlaying;this.onUpdate=onUpdate;this.onError=onError;
@@ -172,7 +188,7 @@
             this.subscriptions=[];this.bound=null;
         }
     }
-    const api={findStore,lyricsFor,snapshot,playbackStreams,PlaybackEvents,parseYrc,attachWordTimings,attachTranslations,nativeLyricCache,LegacyLyricReader};
+    const api={findStore,lyricsFor,snapshot,playbackStreams,PlaybackEvents,parseYrc,attachWordTimings,attachTranslations,nativeLyricCache,LegacyLyricReader,authorizeClient,adaptiveLyrics};
     if (typeof module!=='undefined' && module.exports) module.exports=api;
     else root.FloatingLyricsAdapter=api;
 })(typeof window==='undefined' ? globalThis : window);

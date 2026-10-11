@@ -85,7 +85,13 @@ def check_bat_window(bat, directory):
     except ImportError:
         pass
     user.PostMessageW(found[0], 0x0010, 0, 0)
-    time.sleep(.5)
+    # The optional HTTPS refresh may still own a worker; close after it finishes.
+    deadline = time.monotonic() + 15
+    while user.IsWindowVisible(found[0]) and time.monotonic() < deadline:
+        time.sleep(.3)
+        user.PostMessageW(found[0], 0x0010, 0, 0)
+    if user.IsWindowVisible(found[0]):
+        raise RuntimeError("验证窗口未在联网工作结束后关闭。")
     return {"entry": bat.name, "nativeWindowVisible": True}
 
 
@@ -117,9 +123,10 @@ def verify(archive_path, directory, client_exe, framework, profile_directory=Non
     env["PATH"] = os.pathsep.join((str(app), str(Path(os.environ["WINDIR"]) / "System32"), os.environ["WINDIR"]))
     os.environ["PATH"] = env["PATH"]
     checks = []
-    def action(name, uninstall=False):
+    def action(name, uninstall=False, restore=False):
         report = directory / (name + ".json")
-        command = [str(exe), "--uninstall-netease" if uninstall else "--install-netease", "--client-directory", str(client),
+        flag = "--restore-netease" if restore else "--uninstall-netease" if uninstall else "--install-netease"
+        command = [str(exe), flag, "--client-directory", str(client),
                    "--profile-directory", str(profile), "--framework-dll", str(framework), "--installer-report", str(report)]
         result = subprocess.run(command, cwd=app, env=env, timeout=120)
         data = json.loads(report.read_text(encoding="utf-8"))
@@ -127,6 +134,10 @@ def verify(archive_path, directory, client_exe, framework, profile_directory=Non
             raise RuntimeError(f"成品 {name} 失败：{data}")
         checks.append({"name": name, "passed": True})
     action("install")
+    action("restore-first-install", restore=True)
+    if (client / "msimg32.dll").exists() or (profile / "plugins/FloatingLyrics.plugin").exists():
+        raise RuntimeError("首次安装恢复未移除该次新建文件。")
+    action("install-after-restore")
     state = app / ".state"
     personal = {"settings.ini": b"[General]\nfont_family=SimSun\nvolume=24\n",
                 "effect-presets.json": b'{"version":1,"presets":[]}', "fonts/retained.ttf": b"preservation fixture"}
@@ -135,12 +146,18 @@ def verify(archive_path, directory, client_exe, framework, profile_directory=Non
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(data)
     token = json.loads((state / "netease-bridge.json").read_text(encoding="utf-8"))["token"]
+    before_update = {path: path.read_bytes() for path in (profile / "plugins/FloatingLyrics.plugin",
+                     state / "netease-bridge.json", state / "netease-install.json")}
     # Re-extract the update ZIP over the current installation without a .state payload.
     with zipfile.ZipFile(archive_path) as archive:
         archive.extractall(directory / "中文 解压路径")
     action("update")
     if json.loads((state / "netease-bridge.json").read_text(encoding="utf-8"))["token"] != token:
         raise RuntimeError("更新改变了本机连接令牌。")
+    action("restore-update", restore=True)
+    if any(path.read_bytes() != data for path, data in before_update.items()):
+        raise RuntimeError("更新恢复未正确还原旧插件和连接配置。")
+    action("update-after-restore")
     action("uninstall", True)
     action("uninstall-again", True)
     if (profile / "plugins/FloatingLyrics.plugin").exists():
@@ -151,7 +168,7 @@ def verify(archive_path, directory, client_exe, framework, profile_directory=Non
         if (state / name).read_bytes() != data:
             raise RuntimeError("更新或卸载改变了个人文件。")
     checks.append({"name": "update-uninstall-preserves-settings-fonts-presets-token-framework", "passed": True})
-    for name in ("安装网易云联动.bat", "卸载网易云联动.bat"):
+    for name in ("安装网易云联动.bat", "卸载网易云联动.bat", "恢复网易云联动.bat"):
         checks.append(check_bat_window(app / name, directory))
     # Remove only our invalid font placeholder before the application's ordinary smoke check.
     (state / "fonts/retained.ttf").unlink()

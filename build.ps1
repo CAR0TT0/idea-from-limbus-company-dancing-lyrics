@@ -27,7 +27,8 @@ try {
     $energy = Join-Path $taskRoot 'build\native\ProcessEnergy.exe'
     $pluginTemplates = Join-Path $taskRoot 'plugins\netease'
     $qqReader = Join-Path $taskRoot 'native\qqmusic_smtc.ps1'
-    & $taskPython -m PyInstaller --noconfirm --windowed --onedir --name FloatingLyrics --icon (Join-Path $assets 'app.ico') --add-data "$assets;assets" --add-data "$pluginTemplates;plugins/netease" --add-data "$qqReader;native" --add-binary "$energy;native" --distpath $staging --workpath (Join-Path $taskRoot 'build\pyinstaller') --specpath (Join-Path $taskRoot 'build\spec') (Join-Path $taskRoot 'main.py')
+    $compatibility = Join-Path $taskRoot 'compatibility'
+    & $taskPython -m PyInstaller --noconfirm --windowed --onedir --name FloatingLyrics --icon (Join-Path $assets 'app.ico') --add-data "$assets;assets" --add-data "$pluginTemplates;plugins/netease" --add-data "$compatibility;compatibility" --add-data "$qqReader;native" --add-binary "$energy;native" --distpath $staging --workpath (Join-Path $taskRoot 'build\pyinstaller') --specpath (Join-Path $taskRoot 'build\spec') (Join-Path $taskRoot 'main.py')
     if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
     $target = Join-Path $taskRoot 'dist\FloatingLyrics'
     $ready = Join-Path $staging 'FloatingLyrics'

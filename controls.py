@@ -484,6 +484,10 @@ class ControlPanel(QWidget):
         body.addLayout(heading)
         self.music_hint = label("选一首喜欢的歌，为今天的工作添一点节奏。", "muted")
         body.addWidget(self.music_hint)
+        self.compatibility_label = label("", "muted")
+        self.compatibility_label.setWordWrap(True)
+        self.compatibility_label.setVisible(self.external)
+        body.addWidget(self.compatibility_label)
         toolbar = QHBoxLayout()
         toolbar.setSpacing(12)
         self.import_button = QPushButton("导入音乐")
@@ -1267,6 +1271,7 @@ class ControlPanel(QWidget):
         if hasattr(self.player, "cache_status"):
             self.qq_cache_status.setText(self.player.cache_status)
         if self.external:
+            self.compatibility_label.setText(getattr(self.player, "compatibility_status", "兼容检测：等待播放器信息。"))
             self.play_button.setEnabled(False)
             self.play_button.setIcon(symbol_icon("pause" if self.player.playing else "play", accent_text(self.prefs.theme)))
             self.play_button.setToolTip(f"播放、暂停和音量请在{self.source_short}中操作。")

@@ -27,6 +27,8 @@ def main():
     installer = parser.add_mutually_exclusive_group()
     installer.add_argument("--install-netease", action="store_true", help="打开网易云联动安装窗口")
     installer.add_argument("--uninstall-netease", action="store_true", help="打开网易云联动卸载窗口")
+    installer.add_argument("--restore-netease", action="store_true", help="恢复本目录上次网易云联动安装")
+    parser.add_argument("--experimental-netease", action="store_true", help="允许本次尝试安装未验证的网易云版本，仍保留安全检查")
     parser.add_argument("--client-directory", type=Path, help="网易云安装目录")
     parser.add_argument("--profile-directory", type=Path, help="BetterNCM 数据目录")
     parser.add_argument("--framework-dll", type=Path, help="离线安装的官方 BetterNCM 1.3.4 DLL")
@@ -52,7 +54,7 @@ def main():
         parser.error("--qqmusic-smoke 需要 --qqmusic")
     external = args.netease or args.qqmusic
     checking = args.smoke or args.netease_smoke or args.qqmusic_smoke
-    if args.install_netease or args.uninstall_netease:
+    if args.install_netease or args.uninstall_netease or args.restore_netease:
         from installer_ui import run_installer
         from settings import resource_path
         return run_installer(args, app_directory(), resource_path("plugins/netease"))
@@ -109,7 +111,8 @@ def main():
         try:
             config = read_bridge_config(state_dir / "netease-bridge.json")
             player = NeteasePlayer()
-            bridge = NeteaseBridge(player, config["token"])
+            from compatibility import bridge_client
+            bridge = NeteaseBridge(player, config["token"], allowed_client=bridge_client(config))
             bridge.start()
         except (ValueError, RuntimeError, OSError) as error:
             QMessageBox.critical(None, "网易云联动", str(error))

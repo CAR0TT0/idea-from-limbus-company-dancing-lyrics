@@ -16,7 +16,7 @@ PRIVATE_FILES = {"bridge-config.json", "netease-bridge.json", "settings.ini", "e
 UNUSED_QT = {"qt6virtualkeyboard.dll", "qtvirtualkeyboardplugin.dll", "qt6pdf.dll", "qpdf.dll"}
 PLAYERS = {
     "qqmusic": ("DancingLyrics-QQMusic", ("启动QQ音乐联动.bat",)),
-    "netease": ("DancingLyrics-NetEase", ("安装网易云联动.bat", "卸载网易云联动.bat", "启动.bat")),
+    "netease": ("DancingLyrics-NetEase", ("安装网易云联动.bat", "卸载网易云联动.bat", "恢复网易云联动.bat", "启动.bat")),
 }
 
 
@@ -37,6 +37,7 @@ def package_release(package, output_dir, root=ROOT, *, player="netease"):
     if not (package / "FloatingLyrics.exe").is_file() or not (package / "_internal").is_dir():
         raise ValueError("先构建完整的 FloatingLyrics 成品。")
     required = [f"_internal/PySide6/Qt{name}.pyd" for name in ("Core", "Gui", "Widgets")]
+    required += ["_internal/compatibility/clients.json"]
     required += (["_internal/native/qqmusic_smtc.ps1"] if player == "qqmusic" else
                  [f"_internal/plugins/netease/{name}" for name in ("manifest.json", "index.js", "adapter.js")])
     for name in required:

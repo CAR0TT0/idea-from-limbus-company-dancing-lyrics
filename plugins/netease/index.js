@@ -1,8 +1,17 @@
 (() => {
     let socket=null, store=null, config=null, position=0, playId='', lastSent=0, lastLyrics='', lastSong='', fetchSong='', lastState='';
-    let clientVersion='', legacyLyrics=null, enabled=localStorage.getItem('floatingLyrics.enabled') !== 'false';
+    let clientVersion='', legacyLyrics=null, events=null, enabled=localStorage.getItem('floatingLyrics.enabled') !== 'false';
     let status='正在连接桌面歌词…', launching=false, nextLaunch=0, pendingShow=false;
     const buttons=new Set();
+    let diagnostic='', lastDiagnostic=0, connectionNote='';
+    function diagnose(code) {
+        if(socket?.readyState===WebSocket.OPEN && (code!==diagnostic || Date.now()-lastDiagnostic>=1000)){
+            try {
+                socket.send(JSON.stringify({kind:'diagnostic',token:config.token,client:clientVersion,code}));
+                diagnostic=code;lastDiagnostic=Date.now();
+            } catch (_) { /* A disconnected companion must never interrupt host callbacks. */ }
+        }
+    }
     function updateStatus(value) {
         status=value;
         for(const item of buttons) {
@@ -11,7 +20,7 @@
             if(item.textContent!==text) item.textContent=text;
         }
     }
-    function reportError(error) {updateStatus(error.message || String(error)); console.warn('[FloatingLyrics]',status);}
+    function reportError(error) {updateStatus(error.message || String(error)); diagnose('interface_changed');console.warn('[FloatingLyrics]',status);}
     function send(force=false, seek=false) {
         if (!store || socket?.readyState !== WebSocket.OPEN) return;
         const now=Date.now();
@@ -19,8 +28,13 @@
         try {
             const state=store.getState(), p=state.playing;
             if (!p) return;
+            if(!events?.bound) {
+                updateStatus('播放进度接口暂不可用，正在重试；音乐继续由网易云播放');diagnose('playback_missing');return;
+            }
             if (p.playId !== playId) {playId=p.playId; position=0;}
-            const data=FloatingLyricsAdapter.snapshot(legacyLyrics?legacyLyrics.state(state):state,position,enabled,clientVersion);
+            const selected=FloatingLyricsAdapter.adaptiveLyrics(state,legacyLyrics);
+            const data=FloatingLyricsAdapter.snapshot(selected.state,position,enabled,clientVersion,config);
+            data.adapter=selected.adapter;
             const transportState=JSON.stringify([data.song.id,data.playing,data.enabled,data.duration_ms]);
             lastState=transportState;
             const key=data.song.id, lyrics=JSON.stringify(data.lyrics);
@@ -29,8 +43,9 @@
             data.token=config.token;
             data.seek=seek;
             socket.send(JSON.stringify(data));
+            diagnostic='';
             lastSent=now;
-            updateStatus(enabled?'已连接 · 右键或点击旁边的设置调整效果':'歌词效果已关闭 · 点击开启');
+            updateStatus(enabled?`已连接${connectionNote} · ${selected.adapter==='cache'?'本机歌词缓存':'客户端歌词状态'} · 右键或点击旁边的设置调整效果`:'歌词效果已关闭 · 点击开启');
             if (enabled && key && key!==fetchSong) {
                 fetchSong=key;
                 store.dispatch({type:'async:lyric/fetchLyric',payload:{force:true}});
@@ -48,6 +63,7 @@
         if (!config || socket && socket.readyState<2) return;
         socket=new WebSocket('ws://127.0.0.1:38473');
         socket.onopen=()=>{
+            diagnostic='';
             lastLyrics='';lastSong='';send(true);
             if(pendingShow){pendingShow=false;socket.send(JSON.stringify({kind:'show',token:config.token}));}
         };
@@ -83,25 +99,29 @@
     plugin.onLoad(async () => {
         try {
             clientVersion=betterncm.ncm.getNCMVersion();
-            if(!['3.1.40','3.1.41'].includes(clientVersion)) throw new Error('都市回响目前适配网易云 3.1.40／3.1.41');
             config=JSON.parse(await betterncm.fs.readFileText(plugin.pluginPath+'/bridge-config.json'));
-            if(clientVersion==='3.1.40')legacyLyrics=new FloatingLyricsAdapter.LegacyLyricReader(
-                song=>FloatingLyricsAdapter.nativeLyricCache()(song),()=>send(true),reportError);
-            const events=new FloatingLyricsAdapter.PlaybackEvents(()=>FloatingLyricsAdapter.playbackStreams(),
+            FloatingLyricsAdapter.authorizeClient(clientVersion,config);
+            connectionNote=config.compatibility?.status==='unverified'?'（实验性）':'';
+            legacyLyrics=new FloatingLyricsAdapter.LegacyLyricReader(
+                song=>FloatingLyricsAdapter.nativeLyricCache()(song),()=>send(true),error=>{
+                    console.warn('[FloatingLyrics] 歌词缓存暂不可用',error.message);
+                });
+            events=new FloatingLyricsAdapter.PlaybackEvents(()=>FloatingLyricsAdapter.playbackStreams(),
                 ()=>store?.getState().playing,(id,milliseconds,seek)=>{
                     playId=id;position=milliseconds;send(seek,seek);
                 },reportError);
-            const attach=()=>{
+            const attach=()=>{try {
                 if(!store) {
                     store=FloatingLyricsAdapter.findStore(document.querySelector('[data-testid="tid_playbar_play_btn"]'));
                     if(store) store.subscribe(()=>{
                         const p=store.getState().playing;
+                        if(!p)return;
                         const current=JSON.stringify([String(p.resourceTrackId||''),p.playingState===2,enabled,Math.round(p.resourceDuration*1000)]);
                         send(current!==lastState);
                     });
                 }
                 events.attach();
-            };
+            }catch(error){reportError(error);}};
             // Both playback layouts remain mounted; add entries to each one.
             const observer=new MutationObserver(()=>{attach();installButtons();});
             observer.observe(document.body,{childList:true,subtree:true});

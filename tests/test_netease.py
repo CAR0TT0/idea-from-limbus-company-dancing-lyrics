@@ -239,6 +239,26 @@ class BridgeTests(unittest.TestCase):
         QTest.qWait(50)
         self.assertFalse(self.player.connected)
 
+    def test_scoped_new_version_and_diagnostic_recover_without_playback_commands(self):
+        self.bridge.allowed_client = "3.1.42"
+        client = self.connect()
+        self.send(client, dict(packet(client="3.1.42", adapter="cache"), token=self.token))
+        self.assertTrue(self.player.playing)
+        self.assertIn("本机歌词缓存", self.player.compatibility_status)
+        self.send(client, {"kind": "diagnostic", "client": "3.1.42", "token": self.token, "code": "playback_missing"})
+        self.assertFalse(self.player.playing)
+        self.assertIn("进度接口", self.player.status)
+        self.send(client, dict(packet(client="3.1.42", position_ms=5000, adapter="state"), token=self.token))
+        self.assertTrue(self.player.playing)
+        self.assertGreaterEqual(self.player.position(), 5000)
+        self.assertIn("客户端歌词状态", self.player.compatibility_status)
+
+    def test_unknown_version_diagnostic_cannot_hold_a_connection_open(self):
+        client = self.connect()
+        self.send(client, {"kind": "diagnostic", "client": None, "token": self.token, "code": "playback_missing"})
+        self.assertIsNone(self.bridge.owner)
+        self.assertFalse(self.player.connected)
+
     def test_unauthenticated_second_client_cannot_replace_current_song(self):
         owner = self.connect()
         self.send(owner, dict(packet(), token=self.token))

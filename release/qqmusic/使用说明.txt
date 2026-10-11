@@ -1,4 +1,4 @@
-都市回响 0.7.0-beta.5 · QQ 音乐版（Windows x64）
+都市回响 0.7.0-beta.6 · QQ 音乐版（Windows x64）
 
 三步开始
 1. 完整解压 QQ 音乐版 ZIP，保留 FloatingLyrics.exe 及整个 _internal 文件夹。
@@ -44,4 +44,9 @@ https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases
 https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/issues
 反馈请附 QQ 音乐与本应用版本、歌曲、操作步骤和截图。日志位于 .state/app.log。
 不要分享个人配置中的连接令牌；公开下载包不附带个人配置、字体和日志。
+更新客户端后的检测
+当前音乐页显示系统媒体会话、歌曲和进度是否可用，并提示本地缓存或联网歌词来源。
+没有 QQ 版本白名单；新版本仍需要提供有效媒体信息与可读歌词，无法读取时等待并提示。
+QQ 无需实验性注入安装，不修改 QQ 音乐文件。先确认系统媒体控制开启并播放歌曲。
+
 创作者：Bilibili-鈴仙優昙華院因幡
