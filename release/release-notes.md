@@ -1,11 +1,13 @@
-# 都市回响 v0.7.0-beta.2
+# 都市回响 v0.7.0-beta.3
 
-修复 QQ 音乐部分歌曲歌词获取失败：组合搜索被 QQ 官方接口拒绝时，依次回退仅歌名及歌手在前的搜索（最多三种不同查询），仍严格核对原歌曲身份。QQ 播放音乐，都市回响只读展示桌面歌词。
+减少 QQ 音乐取词等待：搜索成功后复用 HTTPS 连接取词；切歌时取消旧歌后续查询，新歌不再等待旧歌的整条回退流程。保留严格歌曲匹配、系统代理和证书校验，最多两个取词任务并行。接口拒绝时使用新连接回退，网络超时仍可能造成等待。
+
+本机同一首真实歌曲的两次成功采样：旧连接方式 7.169 秒，新版 2.711 秒，均取得 76 句。这是单次采样，不代表所有歌曲或网络环境。网易云协议与处理保持原样。
 
 Windows 下载分为两份独立 ZIP，按播放器选择：
 
-- **QQ 音乐版**：`dancing-lyrics-0.7.0-beta.2-qqmusic-windows-x64.zip`，解压目录 `DancingLyrics-QQMusic`。打开 QQ 音乐播放歌曲，双击 **启动QQ音乐联动.bat**；无需 Python 或 BetterNCM。已实测 QQ 音乐 **22.52**。
-- **网易云音乐版**：`dancing-lyrics-0.7.0-beta.2-netease-windows-x64.zip`，解压目录 `DancingLyrics-NetEase`。首次退出网易云并运行 **安装网易云联动.bat**，之后从网易云播放栏打开。无需 Python。
+- **QQ 音乐版**：`dancing-lyrics-0.7.0-beta.3-qqmusic-windows-x64.zip`，解压目录 `DancingLyrics-QQMusic`。打开 QQ 音乐播放歌曲，双击 **启动QQ音乐联动.bat**；无需 Python 或 BetterNCM。已实测 QQ 音乐 **22.52**。
+- **网易云音乐版**：`dancing-lyrics-0.7.0-beta.3-netease-windows-x64.zip`，解压目录 `DancingLyrics-NetEase`。首次退出网易云并运行 **安装网易云联动.bat**，之后从网易云播放栏打开。无需 Python。
 
 每份包只保留对应入口、说明和支持资源，附包版本与播放器信息；不混入 Mac 启动脚本。
 

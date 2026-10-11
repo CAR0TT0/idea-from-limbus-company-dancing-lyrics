@@ -1,5 +1,6 @@
 """Anonymous QQ Music lyric reads. No cookies, audio URLs or third-party services."""
 from dataclasses import dataclass, replace
+from concurrent.futures import CancelledError
 import base64
 import html
 import json
@@ -10,6 +11,7 @@ import urllib.parse
 import urllib.request
 
 from lrc import LyricDocument, parse_lrc, chinese_translation
+from qqmusic_http import discard_connection, lyric_connection, open_request
 
 MAX_BYTES = 2 * 1024 * 1024
 SEARCH_MODULE = "music.search.SearchCgiService"
@@ -36,7 +38,7 @@ def request_json(url, body=None):
     request = urllib.request.Request(url, data=json.dumps(body).encode("utf-8") if body else None,
                                     headers={"User-Agent": "Mozilla/5.0", "Referer": "https://y.qq.com/",
                                              "Content-Type": "application/json"})
-    with urllib.request.urlopen(request, timeout=5) as response:
+    with open_request(request, timeout=5) as response:
         raw = response.read(MAX_BYTES + 1)
     if len(raw) > MAX_BYTES:
         raise ValueError("QQ 音乐歌词响应过大")
@@ -115,7 +117,12 @@ def parse_lyrics(data, encoded=True):
     return LyricDocument(lines, document.warnings, document.offset_ms)
 
 
-def _search_song(snapshot):
+def _checkpoint(cancelled):
+    if cancelled():
+        raise CancelledError()
+
+
+def _search_song(snapshot, cancelled):
     # Search's query parser is case/order sensitive for some collaborations.
     # Preserve the client's display order and spelling; normalize only to compare.
     singers = [re.sub(r"\s*[（(][^()（）]*[)）]\s*$", "", name).strip()
@@ -128,6 +135,7 @@ def _search_song(snapshot):
                              f"{artist_query} {snapshot.title}".strip()))
     candidates, received, last_error = [], False, None
     for query in queries:
+        _checkpoint(cancelled)
         try:
             data = request_json("https://u.y.qq.com/cgi-bin/musicu.fcg", {
                 SEARCH_MODULE: {"module": SEARCH_MODULE, "method": "DoSearchForQQMusicDesktop",
@@ -147,14 +155,23 @@ def _search_song(snapshot):
             if song is not None:
                 return song
         except (OSError, ValueError, UnicodeError) as error:
+            # An official endpoint may reject a request. Start the next fallback
+            # on a fresh connection rather than pinning all queries to it.
+            discard_connection()
             last_error = error
     if not received and last_error is not None:
         raise last_error
     return None
 
 
-def load_song_lyrics(snapshot):
-    song = _search_song(snapshot)
+def load_song_lyrics(snapshot, *, cancelled=lambda: False):
+    with lyric_connection():
+        return _load_song_lyrics(snapshot, cancelled)
+
+
+def _load_song_lyrics(snapshot, cancelled):
+    song = _search_song(snapshot, cancelled)
+    _checkpoint(cancelled)
     if song is None:
         return LyricResult(None, "未找到可靠匹配的 QQ 音乐歌词，可点击“重新获取歌词”重试。")
     mid = song["mid"]
@@ -169,6 +186,7 @@ def load_song_lyrics(snapshot):
             raise ValueError("QQ 音乐歌词接口暂不可用")
         document = parse_lyrics(part.get("data"))
     except (OSError, ValueError, UnicodeError):
+        _checkpoint(cancelled)
         url = "https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg?" + urllib.parse.urlencode(
             {"songmid": mid, "format": "json", "nobase64": 1})
         document = parse_lyrics(request_json(url), encoded=False)

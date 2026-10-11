@@ -2,6 +2,28 @@
 
 每次改动按日期追加记录，包含改动目的、涉及文件、测试与验证结果、影响或已知限制。
 
+## 2026-10-11：减少 QQ 音乐取词与切歌等待
+
+### 改动
+
+- `qqmusic_http.py` 为每次取词流程建立独立的 HTTPS 复用作用域，搜索成功后沿用连接下载歌词；沿用 urllib 系统代理、TLS 证书验证、HTTP 错误处理和 5 秒超时。接口拒绝时关闭连接再回退，已失效的复用连接最多重连一次，结束后释放连接，无新增运行依赖。
+- `qqmusic.py` 取词工作线程从 1 个调整为最多 2 个；切歌、重试和断开时取消旧任务，`qqmusic_lyrics.py` 在后续搜索／取词／备用接口前检查取消。新歌不再等待旧歌的完整回退链；保留歌曲身份与代次校验、32 首内存缓存及失败后手动重试。
+- `tests/test_qqmusic_latency.py` 新增 13 项连接复用、代理隧道、证书／超时失败、接口拒绝换连接、线程隔离及旧歌阻塞时新歌优先完成测试；更新既有切歌、重试与使用说明测试。
+- 版本升级为 `0.7.0-beta.3`，更新 README、QQ 指南、两包使用说明、技术与产品文档、网易云版本说明和发布说明，继续提供 QQ／网易云两个独立 ZIP。
+
+### 测试与验证
+
+- 最终原生全量自动测试 **247 项通过，9.780 秒**，`artifacts/qq-latency-final-tests.txt`。源码实际 BAT Windows 静音检查 **75 项通过**，`artifacts/qq-latency-source-windows/smoke-report.json`。
+- 同曲真实成功采样：Between Two Worlds (Let's Lament)／Mili／KIHOW，旧连接方式 **7.169 秒**（搜索 2.487 秒、取词 4.679 秒）；最终复用方式 **2.711 秒**（搜索 2.113 秒、取词 0.595 秒），均匹配 MID `004D7rAM2SPnrR`、取得 **76 句**。记录为 `artifacts/qq-latency-current.json`、`artifacts/qq-latency-final.json`。
+- 对比过程中也遇到官方 2001 拒绝与 SSL 握手超时，保存在 `artifacts/qq-latency-comparison.json`；没有将失败请求的较短耗时当作成功提速。最终版遇到拒绝时换新连接回退。
+- 最终成品重新构建；旧实例强制退出后残留媒体／音频助手导致原子更新被拦截，清理核验路径的本项目助手后重建成功。QQ 专用 ZIP 从中文路径、移除开发 PATH 后实际 BAT 启动 **4 项通过**（原生窗口、版本、QQ 连接与真实歌词），`artifacts/qq-latency-public-20261011/qq-public-report.json`。
+- 网易云 ZIP 隔离安装／更新／重复卸载、设置／字体／预设／令牌／框架保留与实际 BAT 检查通过，成品静音 **75 项通过**，`artifacts/qq-latency-netease-public/release-report.json`。原用户 4 个配置文件 SHA-256 保持一致，`artifacts/qq-latency-state-preservation.json`；两个 ZIP 完整且 EXE 一致，`artifacts/releases/latency-package-integrity.json`。
+
+### 影响与限制
+
+- 上述为本机单次成功采样，不是 P95 或全曲保证；首次联网、官方拒绝及超时仍可能等待数秒。连续切换多首时最多两个任务执行，已经发送的旧请求不能强行中断，仍可能等待本次网络超时，但取消后不再执行后续查询。
+- 不增加歌词持久缓存、账号 Cookie、第三方服务或播放控制。网易云协议及纯音乐处理不变，Mac 公开包不变。没有第二台干净电脑、更多 QQ 版本或本轮新的网易云实曲播放验收；暂停冻结由自动测试覆盖，没有把旧实测当作本轮新结果。
+
 ## 2026-10-11：QQ 音乐与网易云音乐独立分包
 
 ### 改动

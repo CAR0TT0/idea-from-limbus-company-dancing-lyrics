@@ -258,29 +258,34 @@ class QQPlayerTests(unittest.TestCase):
         self.assertEqual(self.documents[-1].lines[0].text,"Hello")
         self.player.retry_lyrics()
         self.assertIn("重新",self.player.lyric_status)
-        self.finish(1)
+        self.assertTrue(self.executor.jobs[1][2].cancelled())
         self.assertEqual(len(self.executor.jobs),3)
+        self.finish(2)
+        self.assertTrue(self.player.lyrics_received)
 
     def test_switch_disconnect_and_late_result_cannot_reuse_old_lyrics(self):
         self.apply()
+        self.executor.jobs[0][2].set_running_or_notify_cancel()
         self.apply(title="New")
         self.finish()
         self.assertIsNone(self.documents[-1])
         self.assertEqual(len(self.executor.jobs),2)
         self.player.disconnect()
-        self.finish(1)
+        self.assertTrue(self.executor.jobs[1][2].cancelled())
         self.assertFalse(self.player.connected)
         self.assertEqual(self.player.title,"")
         self.assertIsNone(self.documents[-1])
 
     def test_return_to_same_song_still_drops_old_request_generation(self):
         self.apply()
+        self.executor.jobs[0][2].set_running_or_notify_cancel()
         self.apply(title="New")
         self.apply()
         self.finish()
         self.assertIsNone(self.documents[-1])
-        self.assertEqual(len(self.executor.jobs),2)
-        self.finish(1)
+        self.assertEqual(len(self.executor.jobs),3)
+        self.assertTrue(self.executor.jobs[1][2].cancelled())
+        self.finish(2)
         self.assertEqual(self.documents[-1].lines[0].text,"Hello")
 
     def test_network_failure_is_visible_does_not_pause_or_retry_every_tick(self):
@@ -355,6 +360,9 @@ class QQEntryTests(unittest.TestCase):
                       '逐字演唱强调','严格匹配','重新获取歌词','纯音乐','只读','暂无 QQ 音乐逐字时间',
                       '仅歌名','最多','不会随 QQ 音乐自动启动'):
             self.assertIn(value,guide)
+        for value in ('复用 HTTPS 连接', '证书校验', '最多两个取词任务', '5 秒超时', '不保证每首固定耗时'):
+            self.assertIn(value, guide)
+        self.assertIn('首次取词', (ROOT/'release/qqmusic/使用说明.txt').read_text(encoding='utf-8'))
         self.assertIn('[QQ 音乐使用说明](QQMUSIC.md)',(ROOT/'README.md').read_text(encoding='utf-8'))
         for name in ('README.md', 'release/使用说明.txt', 'release/release-notes.md'):
             text = (ROOT/name).read_text(encoding='utf-8')

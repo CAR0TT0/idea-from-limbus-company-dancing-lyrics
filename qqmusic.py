@@ -8,6 +8,7 @@ import math
 import os
 from pathlib import PureWindowsPath
 import time
+import threading
 
 from PySide6.QtCore import QProcess, QTimer
 from netease import NeteasePlayer
@@ -73,7 +74,7 @@ class QQMusicPlayer(NeteasePlayer):
     source_name = source_short = "QQ 音乐"
     connect_hint = "打开 QQ 音乐并播放歌曲；若未连接，请开启 QQ 音乐的系统媒体控制。"
 
-    def __init__(self, parent=None, *, clock=time.monotonic, executor=None, loader=load_song_lyrics, autostart=True):
+    def __init__(self, parent=None, *, clock=time.monotonic, executor=None, loader=None, autostart=True):
         super().__init__(clock=clock, parent=parent)
         self.status = "等待 QQ 音乐播放歌曲"
         self.lyric_status = "等待 QQ 音乐歌词"
@@ -85,9 +86,12 @@ class QQMusicPlayer(NeteasePlayer):
         self._future_key = None
         self._future_generation = 0
         self._requested_key = None
-        self._executor = executor or ThreadPoolExecutor(max_workers=1, thread_name_prefix="qq-lyrics")
+        self._cancel = threading.Event()
+        self._retired = []
+        self._executor = executor or ThreadPoolExecutor(max_workers=2, thread_name_prefix="qq-lyrics")
         self._owns_executor = executor is None
-        self._loader = loader
+        self._loader = loader or load_song_lyrics
+        self._default_loader = loader is None
         self._closed = False
         self._last_packet = clock()
         self._restart_at = 0
@@ -149,6 +153,7 @@ class QQMusicPlayer(NeteasePlayer):
         switched = snapshot.key != self.song_id
         jumped = switched or abs(snapshot.position_ms - self.position()) > 750
         if switched:
+            self._cancel_lyrics()
             self._generation += 1
             self._requested_key = None
             self.lyrics_received = False
@@ -179,7 +184,21 @@ class QQMusicPlayer(NeteasePlayer):
             return
         self._requested_key = self._future_key = self.song_id
         self._future_generation = self._generation
-        self._future = self._executor.submit(self._loader, self._snapshot)
+        self._cancel = threading.Event()
+        self._future = self._executor.submit(self._fetch_lyrics, self._snapshot, self._cancel.is_set)
+
+    def _fetch_lyrics(self, snapshot, cancelled):
+        if self._default_loader:
+            return self._loader(snapshot, cancelled=cancelled)
+        return self._loader(snapshot)
+
+    def _cancel_lyrics(self):
+        self._cancel.set()
+        if self._future is not None:
+            if not self._future.cancel():
+                self._retired.append(self._future)
+            self._future = None
+        self._retired = [future for future in self._retired if not future.done()]
 
     def _apply_lyrics(self, result):
         self.lyrics_received = True
@@ -188,6 +207,7 @@ class QQMusicPlayer(NeteasePlayer):
 
     def retry_lyrics(self):
         if self.connected:
+            self._cancel_lyrics()
             self._cache.pop(self.song_id, None)
             self._generation += 1
             self._requested_key = None
@@ -198,6 +218,7 @@ class QQMusicPlayer(NeteasePlayer):
     def _poll(self):
         if self._closed:
             return
+        self._retired = [future for future in self._retired if not future.done()]
         if self._future is not None and self._future.done():
             future, key, generation = self._future, self._future_key, self._future_generation
             self._future = None
@@ -233,6 +254,7 @@ class QQMusicPlayer(NeteasePlayer):
         self.lyric_status = "等待 QQ 音乐歌词"
         self.lyrics_received = False
         if had_song:
+            self._cancel_lyrics()
             self._generation += 1
             self._requested_key = None
             self.document_changed.emit(None)
@@ -246,8 +268,7 @@ class QQMusicPlayer(NeteasePlayer):
         self.timer.stop()
         self.process.kill()
         self.process.waitForFinished(1000)
-        if self._future:
-            self._future.cancel()
+        self._cancel_lyrics()
         if self._owns_executor:
             self._executor.shutdown(wait=False, cancel_futures=True)
         self.disconnect("QQ 音乐联动已停止")
