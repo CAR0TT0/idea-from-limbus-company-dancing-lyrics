@@ -536,6 +536,23 @@ class ControlPanel(QWidget):
         self.retry_lyrics_button.setAccessibleName("重新获取当前歌曲歌词")
         self.retry_lyrics_button.hide()
         lyrics_body.addWidget(self.retry_lyrics_button)
+        self.qq_cache_controls = QWidget()
+        cache_body = QVBoxLayout(self.qq_cache_controls)
+        cache_body.setContentsMargins(0, 0, 0, 0)
+        self.qq_cache_status = ElidedLabel("歌词缓存：自动检测", "muted")
+        cache_body.addWidget(self.qq_cache_status)
+        cache_buttons = QHBoxLayout()
+        self.choose_qq_cache_button = QPushButton("选择歌词缓存目录")
+        self.choose_qq_cache_button.setAccessibleName("选择 QQ 音乐歌词缓存目录")
+        self.choose_qq_cache_button.clicked.connect(self.choose_qq_cache)
+        self.reset_qq_cache_button = QPushButton("自动查找缓存")
+        self.reset_qq_cache_button.clicked.connect(lambda: self._set_qq_cache_directory(""))
+        cache_buttons.addWidget(self.choose_qq_cache_button)
+        cache_buttons.addWidget(self.reset_qq_cache_button)
+        cache_buttons.addStretch(1)
+        cache_body.addLayout(cache_buttons)
+        self.qq_cache_controls.setVisible(hasattr(self.player, "configure_cache_directory"))
+        lyrics_body.addWidget(self.qq_cache_controls)
         self.analysis_label = label("音乐律动将在播放后开启。", "muted")
         lyrics_body.addWidget(self.analysis_label)
         body.addWidget(lyrics)
@@ -1182,8 +1199,22 @@ class ControlPanel(QWidget):
         seconds = max(0, int(ms) // 1000)
         return f"{seconds // 60:02d}:{seconds % 60:02d}"
 
+    def choose_qq_cache(self):
+        path = QFileDialog.getExistingDirectory(self, "选择 QQ 音乐歌词缓存目录（QQMusicLyricNew）",
+                                              self.prefs.qq_cache_directory)
+        if path:
+            child = Path(path) / "QQMusicLyricNew"
+            self._set_qq_cache_directory(str(child) if child.is_dir() else path)
+
+    def _set_qq_cache_directory(self, path):
+        self.prefs.qq_cache_directory = path
+        self.store.save(self.prefs)
+        self.player.configure_cache_directory(path)
+
     def _refresh_state(self):
         self._refresh_word_status()
+        if hasattr(self.player, "cache_status"):
+            self.qq_cache_status.setText(self.player.cache_status)
         if self.external:
             self.play_button.setEnabled(False)
             self.play_button.setIcon(symbol_icon("pause" if self.player.playing else "play", accent_text(self.prefs.theme)))

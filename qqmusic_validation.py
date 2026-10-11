@@ -18,6 +18,7 @@ class QQMusicSmokeCheck:
         self.samples = []
         self.effect_check = None
         self.captured = False
+        self.first_connected = self.first_lyrics = None
         self.timer = QTimer(panel)
         self.timer.setInterval(200)
         self.timer.timeout.connect(self._sample)
@@ -30,6 +31,12 @@ class QQMusicSmokeCheck:
                       song=p.song_id,playing=p.playing,position=round(p.position(),2),
                       lyricCount=len(doc.lines) if doc else 0,energy=p.has_audio_data)
         self.samples.append(sample)
+        if p.connected and self.first_connected is None:
+            self.first_connected = time.monotonic()
+        if doc and self.first_lyrics is None:
+            self.first_lyrics = time.monotonic()
+        sample['lyricSource'] = 'cache' if p._local_signature else 'network'
+        sample['wordIntervals'] = sum(len(line.words) for line in doc.lines) if doc else 0
         if doc and self.effect_check is None:
             before = (p.song_id, p._anchor, p.playing, p.duration)
             original = panel.prefs.animation_style
@@ -38,6 +45,9 @@ class QQMusicSmokeCheck:
             old = panel.translation_checkbox.isChecked()
             panel.translation_checkbox.setChecked(not old)
             panel.translation_checkbox.setChecked(old)
+            old_sync = panel.singing_checkbox.isChecked()
+            panel.singing_checkbox.setChecked(not old_sync)
+            panel.singing_checkbox.setChecked(old_sync)
             self.effect_check = before == (p.song_id, p._anchor, p.playing, p.duration)
             panel.grab().save(str(self.directory/"qqmusic-panel.png"))
             panel.show_effects()
@@ -67,6 +77,9 @@ class QQMusicSmokeCheck:
                       pausedPositionFrozen=pause_frozen)
         report = dict(passed=all(checks.values()),checks=checks,samples=self.samples,
                       playbackAdvanceObserved=bool(advances),
+                      cacheSourceObserved=any(s['lyricSource']=='cache' and s['lyricCount'] for s in self.samples),
+                      maxWordIntervals=max((s['wordIntervals'] for s in self.samples),default=0),
+                      firstObservedSnapshotToObservedLyricsMs=round((self.first_lyrics-self.first_connected)*1000,2) if self.first_lyrics else None,
                       note="Only actual QQ data. Playback/seek/switch actions are recorded separately.")
         (self.directory/'qqmusic-report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
         self.app.exit(0 if report['passed'] else 1)

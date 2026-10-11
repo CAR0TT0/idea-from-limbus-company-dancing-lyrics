@@ -1,6 +1,6 @@
 """Windows QQ Music companion: read SMTC, fetch matching lyrics off the GUI thread."""
 from collections import OrderedDict
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, CancelledError
 from dataclasses import dataclass
 import json
 import logging
@@ -74,7 +74,8 @@ class QQMusicPlayer(NeteasePlayer):
     source_name = source_short = "QQ 音乐"
     connect_hint = "打开 QQ 音乐并播放歌曲；若未连接，请开启 QQ 音乐的系统媒体控制。"
 
-    def __init__(self, parent=None, *, clock=time.monotonic, executor=None, loader=None, autostart=True):
+    def __init__(self, parent=None, *, clock=time.monotonic, executor=None, loader=None, autostart=True,
+                 cache_reader=None, cache_directory="", cache_executor=None):
         super().__init__(clock=clock, parent=parent)
         self.status = "等待 QQ 音乐播放歌曲"
         self.lyric_status = "等待 QQ 音乐歌词"
@@ -92,6 +93,15 @@ class QQMusicPlayer(NeteasePlayer):
         self._owns_executor = executor is None
         self._loader = loader or load_song_lyrics
         self._default_loader = loader is None
+        self._use_local = cache_reader is not None or loader is None
+        from qqmusic_cache import QQCacheReader
+        self._cache_reader = cache_reader or (QQCacheReader(cache_directory) if self._use_local else None)
+        self._cache_executor = cache_executor or (ThreadPoolExecutor(max_workers=1, thread_name_prefix="qq-cache") if self._use_local else None)
+        self._owns_cache_executor = cache_executor is None
+        self._local_future = None
+        self._local_meta = None
+        self._local_signature = ()
+        self._local_deadline = self._cache_probe_at = 0
         self._closed = False
         self._last_packet = clock()
         self._restart_at = 0
@@ -156,6 +166,9 @@ class QQMusicPlayer(NeteasePlayer):
             self._cancel_lyrics()
             self._generation += 1
             self._requested_key = None
+            self._local_signature = ()
+            self._local_deadline = self._clock() + 20
+            self._cache_probe_at = self._clock() + .5
             self.lyrics_received = False
             self.lyric_status = "正在获取 QQ 音乐歌词…"
             self.document_changed.emit(None)
@@ -188,6 +201,16 @@ class QQMusicPlayer(NeteasePlayer):
         self._future = self._executor.submit(self._fetch_lyrics, self._snapshot, self._cancel.is_set)
 
     def _fetch_lyrics(self, snapshot, cancelled):
+        if self._use_local:
+            try:
+                result = self._cache_reader.load(snapshot, cancelled=cancelled)
+            except CancelledError:
+                raise
+            except Exception as error:
+                logger.warning("QQ local cache unavailable: %s", type(error).__name__)
+                result = None
+            if result is not None:
+                return result
         if self._default_loader:
             return self._loader(snapshot, cancelled=cancelled)
         return self._loader(snapshot)
@@ -198,11 +221,17 @@ class QQMusicPlayer(NeteasePlayer):
             if not self._future.cancel():
                 self._retired.append(self._future)
             self._future = None
+        if self._local_future is not None:
+            if not self._local_future.cancel():
+                self._retired.append(self._local_future)
+            self._local_future = None
         self._retired = [future for future in self._retired if not future.done()]
 
     def _apply_lyrics(self, result):
         self.lyrics_received = True
         self.lyric_status = result.message
+        if result.source == "cache":
+            self._local_signature = result.cache_signature
         self.document_changed.emit(result.document)
 
     def retry_lyrics(self):
@@ -211,14 +240,60 @@ class QQMusicPlayer(NeteasePlayer):
             self._cache.pop(self.song_id, None)
             self._generation += 1
             self._requested_key = None
+            self._local_signature = ()
+            self._local_deadline = self._clock() + 20
+            self._cache_probe_at = self._clock() + .5
             self.lyric_status = "正在重新获取 QQ 音乐歌词…"
             self._schedule_lyrics()
             self.changed.emit()
+
+    @property
+    def cache_status(self):
+        return self._cache_reader.status if self._cache_reader else "歌词缓存：自动检测"
+
+    def configure_cache_directory(self, directory):
+        from qqmusic_cache import QQCacheReader
+        self._cache_reader = QQCacheReader(directory)
+        self._use_local = True
+        if self._cache_executor is None:
+            self._cache_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="qq-cache")
+            self._owns_cache_executor = True
+        self._cache.clear()
+        self.retry_lyrics()
+        self.changed.emit()
+
+    def _poll_local_cache(self):
+        if self._local_future is not None and self._local_future.done():
+            future, (key, generation) = self._local_future, self._local_meta
+            self._local_future = None
+            try:
+                result = future.result()
+            except Exception:
+                result = None  # Cache availability must never interrupt network lyrics.
+            if result is not None and key == self.song_id and generation == self._generation and self.connected:
+                self._cancel_lyrics()
+                self._cancel = threading.Event()
+                self._requested_key = self.song_id
+                self._apply_lyrics(result)
+                if result.document is not None:
+                    self._cache[key] = result
+                    while len(self._cache) > 32:
+                        self._cache.popitem(last=False)
+                self.changed.emit()
+        now = self._clock()
+        if (self._use_local and self.connected and self._snapshot is not None and self._local_future is None
+                and self._cache_probe_at <= now < self._local_deadline):
+            self._cache_probe_at = now + .5
+            self._local_meta = (self.song_id, self._generation)
+            self._local_future = self._cache_executor.submit(
+                self._cache_reader.load, self._snapshot, cancelled=self._cancel.is_set,
+                known_signature=self._local_signature)
 
     def _poll(self):
         if self._closed:
             return
         self._retired = [future for future in self._retired if not future.done()]
+        self._poll_local_cache()
         if self._future is not None and self._future.done():
             future, key, generation = self._future, self._future_key, self._future_generation
             self._future = None
@@ -257,6 +332,8 @@ class QQMusicPlayer(NeteasePlayer):
             self._cancel_lyrics()
             self._generation += 1
             self._requested_key = None
+            self._local_signature = ()
+            self._local_deadline = 0
             self.document_changed.emit(None)
             self.discontinuity.emit()
         self.changed.emit()
@@ -271,4 +348,6 @@ class QQMusicPlayer(NeteasePlayer):
         self._cancel_lyrics()
         if self._owns_executor:
             self._executor.shutdown(wait=False, cancel_futures=True)
+        if self._cache_executor is not None and self._owns_cache_executor:
+            self._cache_executor.shutdown(wait=False, cancel_futures=True)
         self.disconnect("QQ 音乐联动已停止")

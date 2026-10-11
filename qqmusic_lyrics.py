@@ -22,6 +22,8 @@ class LyricResult:
     document: LyricDocument | None
     message: str
     mid: str = ""
+    source: str = "network"
+    cache_signature: tuple = ()
 
 
 def normalized(value):

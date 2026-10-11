@@ -300,6 +300,7 @@ class ReleaseTests(unittest.TestCase):
                         self.assertEqual(info, {"format_version": 1, "app_version": APP_VERSION,
                                                 "player": player, "platform": "windows-x64"})
                         self.assertTrue(any(name.endswith("licenses/LGPL-3.0.txt") for name in names))
+                        self.assertTrue(any(name.endswith("licenses/qq-qrc-MIT.txt") for name in names))
                         self.assertFalse(any("/macos/" in name or name.endswith(".command") for name in names))
                         self.assertFalse(any(".state" in name or "bridge-config" in name or name.endswith(".log") for name in names))
                         self.assertFalse(any(Path(name).name in ("Qt6VirtualKeyboard.dll", "qtvirtualkeyboardplugin.dll", "Qt6Pdf.dll", "qpdf.dll") for name in names))

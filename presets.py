@@ -7,7 +7,7 @@ import uuid
 from settings import Preferences, normalize_preferences
 from fonts import PRESET_FONTS
 
-EFFECT_KEYS = tuple(key for key in asdict(Preferences()) if key not in ("region", "delay_ms", "volume", "theme", "prefer_translation"))
+EFFECT_KEYS = tuple(key for key in asdict(Preferences()) if key not in ("region", "delay_ms", "volume", "theme", "prefer_translation", "qq_cache_directory"))
 
 
 def effect_values(prefs):

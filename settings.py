@@ -47,6 +47,7 @@ class Preferences:
     singing_sync: bool = False
     prefer_translation: bool = False
     theme: str = "light"
+    qq_cache_directory: str = ""
 
 
 class SettingsStore:
@@ -97,6 +98,9 @@ def normalize_preferences(prefs):
     if not QColor(prefs.color).isValid():
         prefs.color = "#a9f4dc"
     prefs.font_family = prefs.font_family.strip()
+    prefs.qq_cache_directory = prefs.qq_cache_directory.strip()
+    if len(prefs.qq_cache_directory)>4096 or any(c in prefs.qq_cache_directory for c in "\n\r\x00"):
+        prefs.qq_cache_directory = ""
     if not prefs.font_family or len(prefs.font_family) > 256 or any(c in prefs.font_family for c in "\n\r\x00"):
         prefs.font_family = DEFAULT_FONT_FAMILY
     return prefs

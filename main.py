@@ -81,7 +81,7 @@ def main():
     if args.qqmusic:
         from qqmusic import QQMusicPlayer
         from process_audio import ProcessAudio, qqmusic_pid
-        player = QQMusicPlayer()
+        player = QQMusicPlayer(cache_directory=prefs.qq_cache_directory)
         audio = ProcessAudio(player, pid_finder=qqmusic_pid)
         app.aboutToQuit.connect(audio.close)
     elif args.netease:

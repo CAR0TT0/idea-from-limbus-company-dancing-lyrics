@@ -357,7 +357,7 @@ class QQEntryTests(unittest.TestCase):
     def test_qq_guide_distinguishes_versions_dependencies_lyrics_and_launch_modes(self):
         guide = (ROOT/'QQMUSIC.md').read_text(encoding='utf-8')
         for value in ('22.52','Windows 10 1809','启动QQ音乐联动.bat','不需要 BetterNCM','整句 LRC',
-                      '逐字演唱强调','严格匹配','重新获取歌词','纯音乐','只读','暂无 QQ 音乐逐字时间',
+                      '逐字演唱强调','严格匹配','重新获取歌词','纯音乐','只读','真实字词时间',
                       '仅歌名','最多','不会随 QQ 音乐自动启动'):
             self.assertIn(value,guide)
         for value in ('复用 HTTPS 连接', '证书校验', '最多两个取词任务', '5 秒超时', '不保证每首固定耗时'):

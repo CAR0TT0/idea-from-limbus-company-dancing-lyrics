@@ -16,14 +16,28 @@ DOCUMENTS = tuple(ROOT / name for name in ("AGENTS.md", "CHANGELOG.md", "README.
 
 
 class WorkflowDocumentationTests(unittest.TestCase):
-    def test_readme_highlights_qq_latency_and_unreleased_cache_support_in_qq_intro(self):
+    def test_readme_highlights_cache_first_support_and_latency_limits_in_qq_intro(self):
         text = (ROOT / "README.md").read_text(encoding="utf-8")
         introduction = text.split("**使用 QQ 音乐**", 1)[1].split("**使用网易云音乐**", 1)[0]
         self.assertIn("> [!IMPORTANT]", introduction)
-        for phrase in ("本地缓存尚未接入当前下载版", "联网搜索歌曲再获取歌词", "已缓存的歌曲",
+        for phrase in ("新版已接入本地缓存优先", "联网搜索歌曲再获取歌词", "已缓存的歌曲",
                        "首次播放或没有缓存", "不是切歌到歌词显示的总延迟", "不能保证所有歌曲",
                        "本地缓存优先、现有官方接口兜底", "docs/QQ歌词缓存研究.md"):
             self.assertIn(phrase, introduction)
+        for phrase in ('选择歌词缓存目录','20 秒','22ms','非零外层偏移'):
+            self.assertIn(phrase,introduction)
+
+    def test_qq_decoder_mit_attributions_and_cache_guides_are_shipped(self):
+        license_text = (ROOT/'release/licenses/qq-qrc-MIT.txt').read_text(encoding='utf-8')
+        for phrase in ('MIT','2026 valenbine','2023 WXRIW','Permission is hereby granted'):
+            self.assertIn(phrase,license_text)
+        notices = (ROOT/'THIRD_PARTY_NOTICES.md').read_text(encoding='utf-8')
+        self.assertIn('release/licenses/qq-qrc-MIT.txt',notices)
+        self.assertIn('2cc0e67dcfc567a122ebb953ef696783a6760d17',notices)
+        for name in ('QQMUSIC.md','release/qqmusic/使用说明.txt'):
+            text = (ROOT/name).read_text(encoding='utf-8')
+            for phrase in ('QQMusicLyricNew','真实字词时间','整句 LRC','20 秒','自动查找缓存'):
+                self.assertIn(phrase,text)
 
     def test_qq_cache_research_distinguishes_measurement_and_product_support(self):
         text = (ROOT / "docs/QQ歌词缓存研究.md").read_text(encoding="utf-8")
@@ -56,6 +70,24 @@ class WorkflowDocumentationTests(unittest.TestCase):
         self.assertTrue(all(item["rejected"] for item in data["negative_checks"]))
         for field in ("first_load_write_latency", "nonzero_offset", "second_machine", "memory_reader", "packaged_integration"):
             self.assertFalse(data["validated"][field])
+
+    def test_qq_cache_product_evidence_is_separate_from_historical_research(self):
+        data = json.loads((ROOT/'docs/research/qq-cache-product-20261011.json').read_text(encoding='utf-8'))
+        self.assertEqual(data['scope'],'product_cache_integration')
+        self.assertEqual(data['app_version'],'0.7.0-beta.4')
+        self.assertEqual(data['decoder']['original_files'],14)
+        self.assertEqual(data['decoder']['valid_word_intervals'],3910)
+        self.assertTrue(data['decoder']['identical_to_mit_reference'])
+        self.assertFalse(data['live']['simulated_data'])
+        self.assertEqual(data['live']['network_requests'],0)
+        self.assertGreater(data['live']['word_intervals'],0)
+        self.assertTrue(all(data['live']['checks'].values()))
+        for archive in data['archives']:
+            self.assertRegex(archive['sha256'],r'^[0-9a-f]{64}$')
+            self.assertIn(data['app_version'],archive['filename'])
+        self.assertFalse(data['qq_public_zip']['clean_machine'])
+        self.assertIn('client_first_load_write_latency',data['not_verified'])
+        self.assertNotIn('decoded_text',json.dumps(data))
 
     def test_mac_download_guides_distinguish_architecture_dependency_and_validation(self):
         from tools.package_macos import MAC_RELEASE_TAG, archive_name
