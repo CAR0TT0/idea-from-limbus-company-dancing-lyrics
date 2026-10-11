@@ -16,6 +16,27 @@ DOCUMENTS = tuple(ROOT / name for name in ("AGENTS.md", "CHANGELOG.md", "README.
 
 
 class WorkflowDocumentationTests(unittest.TestCase):
+    def test_qq_autostart_release_describes_opt_in_disable_reuse_and_update(self):
+        from app_info import APP_VERSION
+        guide = (ROOT/'QQMUSIC.md').read_text(encoding='utf-8')
+        for phrase in ('随 QQ 音乐启动', '默认关闭', 'Windows 登录', '托盘', '已有歌词实例会复用',
+                       '关闭开关', '约 2 秒', '手动退出', '重开 QQ 音乐', '移动目录', '效果预设',
+                       '无需管理员权限', '260 字符', f'v{APP_VERSION}'):
+            self.assertIn(phrase, guide)
+        package_guide = (ROOT/'release/qqmusic/使用说明.txt').read_text(encoding='utf-8')
+        for phrase in ('随 QQ 音乐启动', '默认关闭', '关闭开关', '本版 ZIP', '移动完整目录'):
+            self.assertIn(phrase, package_guide)
+        readme = (ROOT/'README.md').read_text(encoding='utf-8')
+        introduction = readme.split('**使用 QQ 音乐**', 1)[1].split('**使用网易云音乐**', 1)[0]
+        for phrase in ('首次双击', '当前音乐 → QQ 音乐自动联动 → 随 QQ 音乐启动', '默认关闭',
+                       'Windows 登录', '系统托盘', '已有窗口', '更新或删除前', '移动目录', '.state'):
+            self.assertIn(phrase, introduction)
+        notes = (ROOT/'release/release-notes.md').read_text(encoding='utf-8')
+        for text in (guide, package_guide, introduction, notes):
+            self.assertNotIn('本地设计预览', text)
+            self.assertNotIn('尚未发布', text)
+        self.assertIn('随 QQ 音乐启动', notes)
+
     def test_readme_highlights_cache_first_support_and_latency_limits_in_qq_intro(self):
         text = (ROOT / "README.md").read_text(encoding="utf-8")
         introduction = text.split("**使用 QQ 音乐**", 1)[1].split("**使用网易云音乐**", 1)[0]
@@ -26,6 +47,43 @@ class WorkflowDocumentationTests(unittest.TestCase):
             self.assertIn(phrase, introduction)
         for phrase in ('选择歌词缓存目录','20 秒','22ms','非零外层偏移'):
             self.assertIn(phrase,introduction)
+
+    def test_qq_22_75_guides_explain_single_package_and_opened_state(self):
+        for name in ('README.md', 'QQMUSIC.md', 'release/qqmusic/使用说明.txt', 'release/release-notes.md'):
+            text = (ROOT/name).read_text(encoding='utf-8')
+            for phrase in ('22.52／22.75', '无需选择客户端版本', 'Opened', '系统媒体控制'):
+                self.assertIn(phrase, text)
+
+    def test_qq_autostart_release_evidence_keeps_native_and_playback_scope_explicit(self):
+        data = json.loads((ROOT/'docs/research/qq-autostart-release-20261011.json').read_text(encoding='utf-8'))
+        self.assertEqual(data['app_version'], '0.7.0-beta.5')
+        self.assertEqual(data['environment']['qq_music'], '22.75')
+        native = data['native_autostart']
+        self.assertTrue(native['passed'])
+        self.assertEqual(len(native['checks']), 14)
+        self.assertTrue(all(native['checks'].values()))
+        self.assertEqual(native['playback_commands'], 0)
+        live = data['real_qq_22_75']
+        self.assertFalse(live['simulated_data'])
+        self.assertTrue(all(live['checks'].values()))
+        self.assertGreater(live['word_intervals'], 0)
+        self.assertEqual(live['latency_sample_count'], 1)
+        self.assertFalse(live['real_seek_or_switch_verified'])
+        self.assertEqual(data['layout']['checks'], 18)
+        self.assertTrue(data['layout']['enabled_status_is_fixture'])
+        self.assertEqual(data['preserved_user_files'], 8)
+        for report in data['public_packages'].values():
+            self.assertTrue(report['passed'])
+            self.assertFalse(report['clean_machine'])
+        for archive in data['archives']:
+            self.assertRegex(archive['sha256'], r'^[0-9a-f]{64}$')
+        self.assertIn('windows_logoff_or_reboot', data['not_verified'])
+        self.assertNotIn('decoded_text', json.dumps(data))
+        from PySide6.QtGui import QImageReader
+        image = QImageReader(str(ROOT/'docs/images/qqmusic-autostart.png')).read()
+        self.assertFalse(image.isNull())
+        self.assertGreaterEqual(image.width(), 900)
+        self.assertGreaterEqual(image.height(), 560)
 
     def test_qq_decoder_mit_attributions_and_cache_guides_are_shipped(self):
         license_text = (ROOT/'release/licenses/qq-qrc-MIT.txt').read_text(encoding='utf-8')

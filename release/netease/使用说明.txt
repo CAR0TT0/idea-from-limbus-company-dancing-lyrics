@@ -1,4 +1,4 @@
-都市回响 0.7.0-beta.4 · 网易云音乐版（Windows x64）
+都市回响 0.7.0-beta.5 · 网易云音乐版（Windows x64）
 
 三步开始
 1. 完整解压网易云音乐版 ZIP 到长期保留且自己可写的目录，保留 FloatingLyrics.exe 及整个 _internal 文件夹。

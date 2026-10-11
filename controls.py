@@ -293,13 +293,17 @@ class FontPreview(QWidget):
 
 
 class ControlPanel(QWidget):
-    def __init__(self, player, overlay, prefs, store, font_library=None):
+    def __init__(self, player, overlay, prefs, store, font_library=None, startup_manager=None):
         super().__init__()
         self.player, self.overlay = player, overlay
         self.external = getattr(player, "is_external", False)
         self.source_name = getattr(player, "source_name", "网易云音乐")
         self.source_short = getattr(player, "source_short", "网易云")
         self.prefs, self.store = prefs, store
+        self.startup_manager = startup_manager
+        if self.startup_manager is None and self.source_short == "QQ 音乐" and sys.platform == "win32":
+            from qqmusic_startup import QQStartupManager
+            self.startup_manager = QQStartupManager()
         state = Path(store.store.fileName())
         self.presets = PresetStore(state.parent / ("smoke-effect-presets.json" if state.name.startswith("smoke-") else "effect-presets.json"))
         self._preset_id = None
@@ -308,6 +312,7 @@ class ControlPanel(QWidget):
         self.prefs.font_family, self._font_message = self.font_library.restore_family(prefs.font_family)
         self._updating = False
         self._shown_tray_hint = False
+        self._quitting = False
         self.setWindowTitle(APP_NAME)
         self.setWindowIcon(app_icon(prefs.theme))
         self.setStyleSheet(theme_stylesheet(prefs.theme))
@@ -417,7 +422,7 @@ class ControlPanel(QWidget):
         self.exit_button = QPushButton("退出")
         self.exit_button.setObjectName("quiet")
         self.exit_button.setIcon(symbol_icon("exit"))
-        self.exit_button.clicked.connect(QApplication.instance().quit)
+        self.exit_button.clicked.connect(self.quit_application)
         body.addWidget(self.exit_button)
         return self.sidebar
 
@@ -556,6 +561,23 @@ class ControlPanel(QWidget):
         self.analysis_label = label("音乐律动将在播放后开启。", "muted")
         lyrics_body.addWidget(self.analysis_label)
         body.addWidget(lyrics)
+        self.qq_startup_card, startup_body = card("QQ 音乐自动联动")
+        self.qq_startup_checkbox = QCheckBox("随 QQ 音乐启动")
+        self.qq_startup_checkbox.setAccessibleName("随 QQ 音乐启动")
+        self.qq_startup_checkbox.setToolTip("在 Windows 登录时启动后台监听；不会打开或控制 QQ 音乐。")
+        startup_body.addWidget(self.qq_startup_checkbox)
+        startup_hint = label("开启后，打开 QQ 音乐就自动显示歌词，设置面板收在托盘。\n"
+                             "Windows 登录时运行后台监听；关闭开关可取消。", "muted")
+        startup_hint.setWordWrap(True)
+        startup_body.addWidget(startup_hint)
+        self.qq_startup_status = label("", "muted")
+        self.qq_startup_status.setWordWrap(True)
+        startup_body.addWidget(self.qq_startup_status)
+        self.qq_startup_card.setVisible(self.startup_manager is not None)
+        if self.startup_manager is not None:
+            self._refresh_qq_startup()
+        self.qq_startup_checkbox.toggled.connect(self._set_qq_startup)
+        body.addWidget(self.qq_startup_card)
         body.addWidget(label("歌词层透明、鼠标穿透，继续点击与输入就好。", "muted"))
         body.addStretch(1)
         return scroll
@@ -849,7 +871,7 @@ class ControlPanel(QWidget):
         self.tray_visibility = QAction("隐藏歌词", self)
         self.tray_visibility.triggered.connect(self.toggle_overlay)
         quit_action = QAction("退出", self)
-        quit_action.triggered.connect(QApplication.instance().quit)
+        quit_action.triggered.connect(self.quit_application)
         menu.addAction(open_action)
         menu.addAction(self.tray_play)
         menu.addAction(self.tray_visibility)
@@ -901,7 +923,15 @@ class ControlPanel(QWidget):
         self._select_page(1)
         self.show_panel()
 
+    def quit_application(self):
+        # Explicit exit must not be cancelled by our ordinary close-to-tray handler.
+        self._quitting = True
+        QApplication.instance().exit(0)
+
     def closeEvent(self, event):
+        if self._quitting:
+            event.accept()
+            return
         if self.tray_available or sys.platform == "darwin":
             event.ignore()
             self.hide()
@@ -1210,6 +1240,27 @@ class ControlPanel(QWidget):
         self.prefs.qq_cache_directory = path
         self.store.save(self.prefs)
         self.player.configure_cache_directory(path)
+
+    def _refresh_qq_startup(self):
+        try:
+            enabled = self.startup_manager.enabled()
+            with QSignalBlocker(self.qq_startup_checkbox):
+                self.qq_startup_checkbox.setChecked(enabled)
+            self.qq_startup_status.setText("已开启 · 右键托盘图标可打开设置；手动退出后，重开 QQ 音乐再自动启动。"
+                                           if enabled else "未开启 · 仍可手动使用启动入口。")
+        except OSError as error:
+            self.qq_startup_status.setText(f"无法读取自动启动设置：{error}")
+
+    def _set_qq_startup(self, enabled):
+        if self.startup_manager is None:
+            return
+        try:
+            self.startup_manager.set_enabled(enabled)
+        except OSError as error:
+            self._refresh_qq_startup()
+            self.qq_startup_status.setText(f"自动启动设置失败：{error}")
+        else:
+            self._refresh_qq_startup()
 
     def _refresh_state(self):
         self._refresh_word_status()

@@ -6,14 +6,14 @@
 
 桌面实机录屏，约 18 秒，循环播放（GIF 无声）。
 
-**[下载 Windows x64 试用版](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/tag/v0.7.0-beta.4)** · [问题反馈](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/issues)
+**[下载 Windows x64 试用版](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/tag/v0.7.0-beta.5)** · [问题反馈](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/issues)
 
 Windows 请按播放器选择独立压缩包：
 
 | 使用的播放器 | 下载 | 使用入口 |
 | --- | --- | --- |
-| QQ 音乐 | [下载 QQ 音乐版 ZIP](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.7.0-beta.4/dancing-lyrics-0.7.0-beta.4-qqmusic-windows-x64.zip) | 打开 QQ 音乐，双击“启动QQ音乐联动.bat” |
-| 网易云音乐 | [下载网易云音乐版 ZIP](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.7.0-beta.4/dancing-lyrics-0.7.0-beta.4-netease-windows-x64.zip) | 首次安装联动，之后从网易云播放栏打开 |
+| QQ 音乐 | [下载 QQ 音乐版 ZIP](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.7.0-beta.5/dancing-lyrics-0.7.0-beta.5-qqmusic-windows-x64.zip) | 打开 QQ 音乐，双击“启动QQ音乐联动.bat” |
+| 网易云音乐 | [下载网易云音乐版 ZIP](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.7.0-beta.5/dancing-lyrics-0.7.0-beta.5-netease-windows-x64.zip) | 首次安装联动，之后从网易云播放栏打开 |
 
 两份包使用不同解压目录，入口与说明各自独立，均内置运行环境。旧通用包升级时，先退出歌词程序，将旧 `.state` 整个复制到对应新目录；网易云版还需退出网易云并重新安装联动以更新路径。同一时间只运行一个歌词实例。
 
@@ -30,9 +30,21 @@ Mac：解压后将 `都市回响.app` 拖到“应用程序”，首次运行包
 
 [观看 30 秒无音乐演示](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.6.0-beta.2/dancing-lyrics-demo-30s.mp4)
 
-**使用 QQ 音乐**：下载新版并完整解压 → 打开 QQ 音乐播放歌曲 → 双击 **启动QQ音乐联动.bat**。无需运行网易云安装器，详细说明见下方 QQ 联动说明。
+**使用 QQ 音乐**（新版支持自动启动）：
 
-QQ 联动需要单独启动，不会随 QQ 音乐自动打开，也不会在 QQ 播放栏增加按钮。确认窗口显示“已连接 QQ 音乐”和“歌词已同步”；暂停时歌词动画也会冻结。
+1. 下载 **QQ 音乐版 ZIP**，完整解压到长期保留且可写的目录；保留 EXE 旁的整个 `_internal` 文件夹。
+2. 打开 QQ 音乐播放歌曲，首次双击 **启动QQ音乐联动.bat**。确认“已连接 QQ 音乐”和“歌词已同步”；暂停时动画也会冻结。
+3. 想以后自动联动，在 **当前音乐 → QQ 音乐自动联动 → 随 QQ 音乐启动** 打勾。默认关闭；开启后立即监听，并在 Windows 登录时继续监听，之后打开 QQ 音乐就会自动启动歌词效果。
+
+自动启动时设置面板收在**系统托盘**，右键托盘图标可打开设置；再次双击 BAT 会恢复已有窗口，不重复创建 QQ 歌词实例。关闭开关可取消，监听约 2 秒内退出，当前歌词继续运行。手动退出歌词后，本次 QQ 会话不会反复拉起，重开 QQ 音乐后恢复自动启动。
+
+**QQ 更新到 22.75 后**，如果显示“等待 QQ 音乐播放歌曲”，先在 QQ 设置中确认开启“系统媒体控制”，再播放一首歌曲。客户端刚打开时可能只提供 `Opened` 状态、零时长和零进度，此时程序会等待真实时间轴，避免错误显示旧歌词。
+
+22.75 实测暂停后可能再校正一次系统时间轴，校正稳定后歌词保持冻结；若在暂停时主动拖动进度，歌词仍按客户端位置更新。
+
+**更新或删除前**先关闭开关，等待约 2 秒，再从托盘退出歌词程序；更新保留 `.state`。移动目录或换新目录后，从新目录手动启动并重新开启开关。无需管理员权限或 BetterNCM；QQ 播放栏不增加按钮。系统可能延迟或禁用登录启动，遇到这种情况先手动打开 BAT，检查 Windows“启动应用”。详见 [QQ 音乐使用说明](QQMUSIC.md)。
+
+![QQ 音乐自动启动设置实机界面](docs/images/qqmusic-autostart.png)
 
 > [!IMPORTANT]
 > **QQ 音乐取词：新版已接入本地缓存优先、现有官方接口兜底。**
@@ -45,7 +57,7 @@ QQ 联动需要单独启动，不会随 QQ 音乐自动打开，也不会在 QQ 
 
 **使用网易云音乐**：
 
-1. 下载 `dancing-lyrics-0.7.0-beta.4-netease-windows-x64.zip`，完整解压到长期保留且可写的目录。
+1. 下载 `dancing-lyrics-0.7.0-beta.5-netease-windows-x64.zip`，完整解压到长期保留且可写的目录。
 2. 完全退出网易云（包括托盘），双击 **安装网易云联动.bat**，在窗口点击安装。
 3. 重开网易云，点击播放栏的“都市回响”；右键或点击“设置”调整效果。
 **注意版本注意版本****最好取消自动更新**
@@ -59,7 +71,7 @@ QQ 联动需要单独启动，不会随 QQ 音乐自动打开，也不会在 QQ 
 
 详细流程见 [使用说明](release/使用说明.txt)。自有源码采用 [MIT](LICENSE)，运行组件保留 [第三方许可](THIRD_PARTY_NOTICES.md)。
 
-QQ 音乐：打开 QQ 音乐播放歌曲，双击新版包内 **启动QQ音乐联动.bat**，无需安装客户端插件或 BetterNCM。使用同一个 EXE 和已有字体、主题、动画与预设。第一版本机适配 QQ 音乐 **22.52**，支持本地 QRC 字词时间与可用中文译文，缓存未命中时回退整句 LRC，其他客户端版本仍待验证。详见 [QQ 音乐使用说明](QQMUSIC.md)。QQ 与网易云请选择对应入口，同一时间只运行一个歌词实例。
+QQ 音乐：本机已验证 **22.52／22.75**，下载同一份 **QQ 音乐版 ZIP** 即可，无需选择客户端版本。22.75 沿用系统媒体会话和本地 QRC 缓存接入；支持真实字词时间与可用中文译文，缓存未命中时回退整句 LRC。字体、主题、动画与预设沿用，其他客户端版本仍待验证。详见 [QQ 音乐使用说明](QQMUSIC.md)。QQ 与网易云请选择对应入口，同一时间只运行一个歌词实例。
 
 ![QQ 音乐联动实机窗口](docs/images/qqmusic-panel.png)
 
@@ -74,7 +86,7 @@ Intel 与 Apple Silicon 的适配器及共用绘制自动测试已通过，安�
 
 ## 功能与使用
 
-应用版本 **0.7.0-beta.4**；现有 Mac 公开包仍为 0.6.0-beta.2 实验版，本轮 QQ 适配仅用于 Windows。侧栏显示“创作者：Bilibili-鈴仙優昙華院因幡”和版本号，标语为 **FACE THE SIN. SAVE THE E.G.O**。左侧下方可选择“默认主题／深色主题／特殊主题”，立即生效并自动保存，重启后保留选择。默认主题和深色主题保留原外观；特殊主题采用 Limbus Company 风格的黑金配色、切角双层边框和机械图纸底纹。
+应用版本 **0.7.0-beta.5**；现有 Mac 公开包仍为 0.6.0-beta.2 实验版，本轮 QQ 适配仅用于 Windows。侧栏显示“创作者：Bilibili-鈴仙優昙華院因幡”和版本号，标语为 **FACE THE SIN. SAVE THE E.G.O**。左侧下方可选择“默认主题／深色主题／特殊主题”，立即生效并自动保存，重启后保留选择。默认主题和深色主题保留原外观；特殊主题采用 Limbus Company 风格的黑金配色、切角双层边框和机械图纸底纹。
 
 特殊主题将侧栏、窗口、运行中的 Windows 任务栏及系统托盘图标换为但丁钟头；切回默认或深色主题恢复红色波形图标。后台运行时托盘也显示当前主题图标。主题不改变歌词颜色、字体、动画、效果预设、播放进度或独立的预览背景；更新保留已有选择。安装目录里的 EXE 文件图标仍为原图标，未运行时的固定快捷方式由 Windows 管理。
 

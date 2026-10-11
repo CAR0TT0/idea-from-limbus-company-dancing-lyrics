@@ -22,6 +22,18 @@ public static class LyricsLauncherWindows {
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint pid);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr hwnd, StringBuilder text, int max);
     [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr hwnd);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr GetProp(IntPtr hwnd, string name);
+    public static IntPtr FindVisibleQQPanel() {
+        IntPtr result = IntPtr.Zero;
+        EnumWindows(delegate(IntPtr hwnd, IntPtr unused) {
+            if (GetProp(hwnd, "CityEchoes.QQMusic.Panel") != IntPtr.Zero && IsWindowVisible(hwnd)) {
+                result = hwnd;
+                return false;
+            }
+            return true;
+        }, IntPtr.Zero);
+        return result;
+    }
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct ProcessEntry {
         public uint size, usage, pid;
@@ -122,6 +134,16 @@ public static class LyricsLauncherWindows {
     while ($taskWatch.ElapsedMilliseconds -lt 30000) {
         if ($taskProcess.WaitForExit(150)) {
             $taskProcess.Refresh()
+            if ($QQMusic -and -not $Smoke -and $taskProcess.ExitCode -eq 0) {
+                $taskExistingWatch = [Diagnostics.Stopwatch]::StartNew()
+                while ($taskExistingWatch.ElapsedMilliseconds -lt 3000) {
+                    if ([LyricsLauncherWindows]::FindVisibleQQPanel() -ne [IntPtr]::Zero) {
+                        Write-Output 'The existing QQ Music companion is visible.'
+                        exit 0
+                    }
+                    Start-Sleep -Milliseconds 100
+                }
+            }
             throw ('The app exited before showing its control panel. Exit code: ' + $taskProcess.ExitCode)
         }
         $taskPanel = [LyricsLauncherWindows]::FindVisiblePanel($taskProcess.Id)

@@ -52,6 +52,22 @@ class ManualExecutor:
 
 
 class QQParsingTests(unittest.TestCase):
+    def test_22_75_opened_snapshot_waits_for_authoritative_timeline(self):
+        # Actual 22.75 startup packet, before playback supplies a usable timeline.
+        data = json.loads((ROOT/'tests/fixtures/qqmusic-22.75-opened.json').read_text(encoding='utf-8'))
+        self.assertEqual(data['snapshot']['state'], 'Opened')
+        self.assertEqual(data['snapshot']['duration_ms'], 0)
+        self.assertIsNone(parse_snapshot(data['snapshot']))
+
+    def test_22_75_real_playing_packet_preserves_identity_and_anchor(self):
+        data = json.loads((ROOT/'tests/fixtures/qqmusic-22.75-playing.json').read_text(encoding='utf-8'))
+        snapshot = parse_snapshot(data['snapshot'])
+        self.assertEqual(snapshot.title, "Between Two Worlds (Let's Lament)")
+        self.assertEqual(snapshot.artist, 'Mili (ミリー)/KIHOW')
+        self.assertEqual(snapshot.duration_ms, 362626)
+        self.assertEqual(snapshot.position_ms, 218376)
+        self.assertTrue(snapshot.playing)
+
     def test_authoritative_timeline_age_rate_pause_and_end_clamp(self):
         self.assertEqual(parse_snapshot(packet()).position_ms, 1500)
         self.assertEqual(parse_snapshot(packet(rate=2)).position_ms, 2000)
@@ -276,6 +292,20 @@ class QQPlayerTests(unittest.TestCase):
         self.assertEqual(self.player.title,"")
         self.assertIsNone(self.documents[-1])
 
+    def test_22_75_opened_packet_clears_previous_song_then_accepts_playback(self):
+        self.apply()
+        self.finish()
+        data = (ROOT/'tests/fixtures/qqmusic-22.75-opened.json').read_bytes() + b'\n'
+        with patch.object(self.player.process, 'readAllStandardOutput', return_value=data):
+            self.player._read()
+        self.assertFalse(self.player.connected)
+        self.assertIsNone(self.documents[-1])
+        self.assertEqual(self.player.position(), 0)
+        self.player.apply_snapshot(parse_snapshot(packet(title='After update')))
+        self.assertTrue(self.player.connected)
+        self.assertTrue(self.player.playing)
+        self.assertEqual(self.player.title, 'After update')
+
     def test_return_to_same_song_still_drops_old_request_generation(self):
         self.apply()
         self.executor.jobs[0][2].set_running_or_notify_cancel()
@@ -358,7 +388,7 @@ class QQEntryTests(unittest.TestCase):
         guide = (ROOT/'QQMUSIC.md').read_text(encoding='utf-8')
         for value in ('22.52','Windows 10 1809','启动QQ音乐联动.bat','不需要 BetterNCM','整句 LRC',
                       '逐字演唱强调','严格匹配','重新获取歌词','纯音乐','只读','真实字词时间',
-                      '仅歌名','最多','不会随 QQ 音乐自动启动'):
+                       '仅歌名','最多','随 QQ 音乐启动','Windows 登录'):
             self.assertIn(value,guide)
         for value in ('复用 HTTPS 连接', '证书校验', '最多两个取词任务', '5 秒超时', '不保证每首固定耗时'):
             self.assertIn(value, guide)
@@ -366,7 +396,8 @@ class QQEntryTests(unittest.TestCase):
         self.assertIn('[QQ 音乐使用说明](QQMUSIC.md)',(ROOT/'README.md').read_text(encoding='utf-8'))
         for name in ('README.md', 'release/使用说明.txt', 'release/release-notes.md'):
             text = (ROOT/name).read_text(encoding='utf-8')
-            self.assertIn('不会随 QQ 音乐自动', text)
+            self.assertIn('随 QQ 音乐启动', text)
+            self.assertIn('默认关闭', text)
             self.assertIn('启动QQ音乐联动.bat', text)
 
     def test_update_build_checks_running_app_before_writes_and_renames_whole_directories(self):

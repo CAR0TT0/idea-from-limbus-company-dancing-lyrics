@@ -4,6 +4,11 @@ import os
 from pathlib import Path
 import sys
 
+# Login monitoring has no Qt/audio imports and never controls the music client.
+if __name__ == "__main__" and sys.argv[1:] == ["--watch-qqmusic"]:
+    from qqmusic_startup import run_watcher
+    raise SystemExit(run_watcher())
+
 # QAudioBufferOutput requires the FFmpeg backend. Set before importing Qt Multimedia.
 os.environ["QT_MEDIA_BACKEND"] = "ffmpeg"
 from PySide6.QtCore import QTimer
@@ -68,6 +73,20 @@ def main():
     app.setFont(QFont(DEFAULT_FONT_FAMILY, 10))
     app.setQuitOnLastWindowClosed(False)
 
+    qq_mutex = show_event = None
+    if args.qqmusic and not checking and sys.platform == "win32":
+        from qqmusic_startup import NamedMutex, ShowPanelEvent, object_name
+        show_event = ShowPanelEvent()
+        qq_mutex = NamedMutex(object_name("app"))
+        if not qq_mutex.acquired:
+            if not args.background:
+                show_event.signal()
+            show_event.close()
+            qq_mutex.close()
+            return 0
+        app.aboutToQuit.connect(qq_mutex.close)
+        app.aboutToQuit.connect(show_event.close)
+
     def exception_hook(error_type, error, traceback):
         logging.error("Unhandled exception", exc_info=(error_type, error, traceback))
         if not args.smoke:
@@ -103,6 +122,13 @@ def main():
     overlay = LyricsOverlay(player, prefs)
     fonts = FontLibrary(state_dir / ("smoke-fonts" if checking else "fonts"))
     panel = ControlPanel(player, overlay, prefs, store, font_library=fonts)
+    if qq_mutex is not None:
+        from qqmusic_startup import mark_panel
+        mark_panel(int(panel.winId()))
+        show_timer = QTimer(panel)
+        show_timer.setInterval(100)
+        show_timer.timeout.connect(lambda: panel.show_panel() if show_event.consume() else None)
+        show_timer.start()
     app.aboutToQuit.connect(lambda: store.save(prefs))
     app.aboutToQuit.connect(player.stop if external else player.media.stop)
     app.aboutToQuit.connect(panel.tray.hide)
