@@ -1,4 +1,4 @@
-都市回响 0.7.0-beta.6 · QQ 音乐版（Windows x64）
+都市回响 0.7.0-beta.7 · QQ 音乐版（Windows x64）
 
 三步开始
 1. 完整解压 QQ 音乐版 ZIP，保留 FloatingLyrics.exe 及整个 _internal 文件夹。

@@ -6,14 +6,14 @@
 
 桌面实机录屏，约 18 秒，循环播放（GIF 无声）。
 
-**[下载 Windows x64 试用版](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/tag/v0.7.0-beta.6)** · [问题反馈](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/issues)
+**[下载 Windows x64 试用版](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/tag/v0.7.0-beta.7)** · [问题反馈](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/issues)
 
 Windows 请按播放器选择独立压缩包：
 
 | 使用的播放器 | 下载 | 使用入口 |
 | --- | --- | --- |
-| QQ 音乐 | [下载 QQ 音乐版 ZIP](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.7.0-beta.6/dancing-lyrics-0.7.0-beta.6-qqmusic-windows-x64.zip) | 打开 QQ 音乐，双击“启动QQ音乐联动.bat” |
-| 网易云音乐 | [下载网易云音乐版 ZIP](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.7.0-beta.6/dancing-lyrics-0.7.0-beta.6-netease-windows-x64.zip) | 首次安装联动，之后从网易云播放栏打开 |
+| QQ 音乐 | [下载 QQ 音乐版 ZIP](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.7.0-beta.7/dancing-lyrics-0.7.0-beta.7-qqmusic-windows-x64.zip) | 打开 QQ 音乐，双击“启动QQ音乐联动.bat” |
+| 网易云音乐 | [下载网易云音乐版 ZIP](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.7.0-beta.7/dancing-lyrics-0.7.0-beta.7-netease-windows-x64.zip) | 首次安装联动，之后从网易云播放栏打开 |
 
 两份包使用不同解压目录，入口与说明各自独立，均内置运行环境。旧通用包升级时，先退出歌词程序，将旧 `.state` 整个复制到对应新目录；网易云版还需退出网易云并重新安装联动以更新路径。同一时间只运行一个歌词实例。
 
@@ -57,12 +57,12 @@ Mac：解压后将 `都市回响.app` 拖到“应用程序”，首次运行包
 
 **使用网易云音乐**：
 
-1. 下载 `dancing-lyrics-0.7.0-beta.6-netease-windows-x64.zip`，完整解压到长期保留且可写的目录。
+1. 下载 `dancing-lyrics-0.7.0-beta.7-netease-windows-x64.zip`，完整解压到长期保留且可写的目录。
 2. 完全退出网易云（包括托盘），双击 **安装网易云联动.bat**，在窗口点击安装。
 3. 重开网易云，点击播放栏的“都市回响”；右键或点击“设置”调整效果。
 无需 Python 或 Git。请下载 ZIP 成品，页面的 Source code 是源码。同一个 ZIP 自动识别 **网易云 3.1.40.205461／3.1.41.205529 x64**。已验证 Windows 11 x64、BetterNCM 1.3.4；尚未在第二台干净电脑完成试装。
 
-**客户端更新后的兼容检测（v0.7.0-beta.6）：** 安装窗口自动读取完整版本，显示“已验证兼容”“未验证”或“已知不兼容”。打开安装窗口会在后台尝试更新在线兼容列表，也可点击“联网刷新兼容列表”；网络失败沿用内置列表或有效缓存。维护者确认新版本可用后，更新列表即可允许正常安装，无需仅为解除版本限制重新下载。
+**客户端更新后的兼容检测（v0.7.0-beta.6 起）：** 安装窗口自动读取完整版本，显示“已验证兼容”“未验证”或“已知不兼容”。打开安装窗口会在后台尝试更新在线兼容列表，也可点击“联网刷新兼容列表”；网络失败沿用内置列表或有效缓存。维护者确认新版本可用后，更新列表即可允许正常安装，无需仅为解除版本限制重新下载。
 
 未验证的版本可以勾选 **“实验性安装（未验证版本）”**，每次安装单独确认。**不能保证未来所有版本兼容**；此入口仅跳过版本白名单，仍检查 x64、框架 SHA-256、文件冲突和客户端已退出。已知不兼容版本禁止安装。连接后按实际接口选择客户端歌词状态或本机缓存，当前音乐页显示检测结果；播放接口变化时停止歌词并提示，不操作网易云播放。
 
@@ -71,6 +71,12 @@ Mac：解压后将 `都市回响.app` 拖到“应用程序”，首次运行包
 QQ 音乐沿用系统媒体与本地缓存检测，不设客户端版本白名单；“当前音乐”显示媒体会话、有效进度和歌词来源状态。QQ 更新后先开启系统媒体控制并播放歌曲；无法读取的新格式仍需更新适配代码。
 
 ![网易云兼容检测与实验性安装窗口](docs/images/compatibility-installer.png)
+
+**安装一直等待或无法关闭？** v0.7.0-beta.7 会显示具体阶段及已用时间，支持“取消操作”，右上角关闭和 Esc 也会请求取消。当前检查返回后退出；文件写入期间先完成或回滚再退出。框架下载设有 45 秒总预算、5 秒单次网络等待，进程检查最多 15 秒。详见 [安装排查与本地 DLL 使用方法](NETEASE.md)。
+
+离线安装框架时，在“本地框架 DLL → 选择”中选中文件，**确认输入框出现实际 DLL 路径**，再安装；只有“BetterNCM 数据目录”路径或 DLL 栏仍为灰色提示文字时，尚未选择 DLL。文件来源和校验要求见上述说明。
+
+![安装阶段与取消按钮演示：真实 Windows 窗口，慢检查为测试模拟](docs/images/installer-wait.png)
 
 更新：退出网易云和歌词程序，新包覆盖原目录并再次安装，保留 `.state`。
 卸载：完全退出网易云后运行 **卸载网易云联动.bat**，保留个人设置、字体、预设和共用框架。
@@ -95,7 +101,7 @@ Intel 与 Apple Silicon 的适配器及共用绘制自动测试已通过，安�
 
 ## 功能与使用
 
-应用版本 **0.7.0-beta.6**；现有 Mac 公开包仍为 0.6.0-beta.2 实验版，本轮 QQ 适配仅用于 Windows。侧栏显示“创作者：Bilibili-鈴仙優昙華院因幡”和版本号，标语为 **FACE THE SIN. SAVE THE E.G.O**。左侧下方可选择“默认主题／深色主题／特殊主题”，立即生效并自动保存，重启后保留选择。默认主题和深色主题保留原外观；特殊主题采用 Limbus Company 风格的黑金配色、切角双层边框和机械图纸底纹。
+应用版本 **0.7.0-beta.7**；现有 Mac 公开包仍为 0.6.0-beta.2 实验版，本轮 QQ 适配仅用于 Windows。侧栏显示“创作者：Bilibili-鈴仙優昙華院因幡”和版本号，标语为 **FACE THE SIN. SAVE THE E.G.O**。左侧下方可选择“默认主题／深色主题／特殊主题”，立即生效并自动保存，重启后保留选择。默认主题和深色主题保留原外观；特殊主题采用 Limbus Company 风格的黑金配色、切角双层边框和机械图纸底纹。
 
 特殊主题将侧栏、窗口、运行中的 Windows 任务栏及系统托盘图标换为但丁钟头；切回默认或深色主题恢复红色波形图标。后台运行时托盘也显示当前主题图标。主题不改变歌词颜色、字体、动画、效果预设、播放进度或独立的预览背景；更新保留已有选择。安装目录里的 EXE 文件图标仍为原图标，未运行时的固定快捷方式由 Windows 管理。
 

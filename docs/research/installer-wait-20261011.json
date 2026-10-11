@@ -1,0 +1,215 @@
+{
+  "app_version": "0.7.0-beta.7",
+  "scope": "installer_wait_and_offline_selection_only",
+  "automatic_tests": {
+    "count": 343,
+    "seconds": 15.992,
+    "passed": true
+  },
+  "source_windows_smoke": {
+    "passed": true,
+    "checks": 75
+  },
+  "native_cancel": {
+    "passed": true,
+    "checks": {
+      "cancel_native_visible": true,
+      "cancel_gui_responsive": true,
+      "cancel_stage_visible": true,
+      "cancel_cancellation_requested": true,
+      "cancel_worker_stopped": true,
+      "cancel_window_result": true,
+      "cancel_client_untouched": true,
+      "close_native_visible": true,
+      "close_gui_responsive": true,
+      "close_stage_visible": true,
+      "close_cancellation_requested": true,
+      "close_worker_stopped": true,
+      "close_window_result": true,
+      "close_client_untouched": true
+    },
+    "native_windows": true,
+    "slow_check_is_fixture": true,
+    "client_writes": 0,
+    "playback_commands": 0
+  },
+  "public_netease": {
+    "passed": true,
+    "checks": {
+      "isolated_source_install_update_restore": true,
+      "isolated_source_uninstall_preserves_settings_and_framework": true,
+      "isolated_source_offline_stage": true,
+      "frozen_running_client_guard": true,
+      "frozen_guard_keeps_plugin_absent": true,
+      "native_安装网易云联动.bat": true,
+      "native_卸载网易云联动.bat": true,
+      "native_恢复网易云联动.bat": true,
+      "public_start_bat_smoke": true
+    },
+    "version": "0.7.0-beta.7",
+    "zipSha256": "cefa5712b59b21df8efc26a62947d5d170963171b00019c43aa3240cd9fc5f51",
+    "developerPathRemoved": true,
+    "cleanMachine": false,
+    "realClientBuild": "3.1.41.205529",
+    "frameworkHashVerified": true,
+    "frozen_positive_install_rerun": false,
+    "source_target_idle_probe_is_fixture": true,
+    "actual_client_restarted": false,
+    "playback_commands": 0,
+    "packaged_smoke_checks": 75
+  },
+  "public_qq": {
+    "passed": true,
+    "checks": {
+      "native_window_visible": true,
+      "correct_version": true,
+      "capability_hint": true,
+      "startup_control": true,
+      "cache_control": true,
+      "reuses_existing_instance": true
+    },
+    "developerPathRemoved": true,
+    "cleanMachine": false,
+    "realQQPlayback": false,
+    "zipSha256": "0b62321bf125cc6843ea1c470a4b39c466c853545803d45587fb1dd2cc0868de"
+  },
+  "layout": [
+    {
+      "passed": true,
+      "scale": "1",
+      "device_pixel_ratio": 1.0,
+      "checks": {
+        "requested_dpi": true,
+        "default_native_visible": true,
+        "default_reachable_0": true,
+        "default_reachable_1": true,
+        "default_reachable_2": true,
+        "default_reachable_3": true,
+        "default_reachable_4": true,
+        "default_reachable_5": true,
+        "default_reachable_6": true,
+        "default_apply_visible": true,
+        "default_restore_visible": true,
+        "default_cancel_visible": true,
+        "small_native_visible": true,
+        "small_reachable_0": true,
+        "small_reachable_1": true,
+        "small_reachable_2": true,
+        "small_reachable_3": true,
+        "small_reachable_4": true,
+        "small_reachable_5": true,
+        "small_reachable_6": true,
+        "small_apply_visible": true,
+        "small_restore_visible": true,
+        "small_cancel_visible": true
+      },
+      "fixture_version": false
+    },
+    {
+      "passed": true,
+      "scale": "1.25",
+      "device_pixel_ratio": 1.24999999995,
+      "checks": {
+        "requested_dpi": true,
+        "default_native_visible": true,
+        "default_reachable_0": true,
+        "default_reachable_1": true,
+        "default_reachable_2": true,
+        "default_reachable_3": true,
+        "default_reachable_4": true,
+        "default_reachable_5": true,
+        "default_reachable_6": true,
+        "default_apply_visible": true,
+        "default_restore_visible": true,
+        "default_cancel_visible": true,
+        "small_native_visible": true,
+        "small_reachable_0": true,
+        "small_reachable_1": true,
+        "small_reachable_2": true,
+        "small_reachable_3": true,
+        "small_reachable_4": true,
+        "small_reachable_5": true,
+        "small_reachable_6": true,
+        "small_apply_visible": true,
+        "small_restore_visible": true,
+        "small_cancel_visible": true
+      },
+      "fixture_version": false
+    },
+    {
+      "passed": true,
+      "scale": "1.5",
+      "device_pixel_ratio": 1.5,
+      "checks": {
+        "requested_dpi": true,
+        "default_native_visible": true,
+        "default_reachable_0": true,
+        "default_reachable_1": true,
+        "default_reachable_2": true,
+        "default_reachable_3": true,
+        "default_reachable_4": true,
+        "default_reachable_5": true,
+        "default_reachable_6": true,
+        "default_apply_visible": true,
+        "default_restore_visible": true,
+        "default_cancel_visible": true,
+        "small_native_visible": true,
+        "small_reachable_0": true,
+        "small_reachable_1": true,
+        "small_reachable_2": true,
+        "small_reachable_3": true,
+        "small_reachable_4": true,
+        "small_reachable_5": true,
+        "small_reachable_6": true,
+        "small_apply_visible": true,
+        "small_restore_visible": true,
+        "small_cancel_visible": true
+      },
+      "fixture_version": false
+    }
+  ],
+  "local_update": {
+    "stateCopyHashesMatch": true,
+    "musicProcessesUnchanged": true,
+    "playbackCommands": 0,
+    "stateFilesPreserved": 18,
+    "musicRestarted": false
+  },
+  "runtime": {
+    "neteaseRunning": true,
+    "debugPortPresent": false,
+    "nativePanelVersionRead": false,
+    "backgroundRequested": true,
+    "localBridgeListening": true,
+    "lyricsRunning": true,
+    "playbackCommands": 0
+  },
+  "archives": [
+    {
+      "player": "netease",
+      "filename": "dancing-lyrics-0.7.0-beta.7-netease-windows-x64.zip",
+      "bytes": 70702056,
+      "entries": 315,
+      "sha256": "cefa5712b59b21df8efc26a62947d5d170963171b00019c43aa3240cd9fc5f51"
+    },
+    {
+      "player": "qqmusic",
+      "filename": "dancing-lyrics-0.7.0-beta.7-qqmusic-windows-x64.zip",
+      "bytes": 70694359,
+      "entries": 310,
+      "sha256": "0b62321bf125cc6843ea1c470a4b39c466c853545803d45587fb1dd2cc0868de"
+    }
+  ],
+  "same_engine": true,
+  "source_reporter_environment_reproduced": false,
+  "local_dll_selection_confirmed_by_reporter": false,
+  "original_feedback_screenshot_version": "0.7.0-beta.5",
+  "not_verified": [
+    "reporter_machine_root_cause",
+    "all_network_and_filesystem_blocking_cases",
+    "frozen_positive_install_transaction_rerun",
+    "new_full_play_seek_switch_regression",
+    "clean_machine"
+  ],
+  "timeout_limitation": "Cooperative cancellation and total-budget checks wait for the current OS/network call to return; file transactions are not forcibly terminated."
+}

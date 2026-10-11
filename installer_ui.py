@@ -4,35 +4,41 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+import time
 from PySide6.QtCore import QThread, Signal, Qt, QTimer
 from PySide6.QtWidgets import (QApplication, QDialog, QVBoxLayout, QLabel, QLineEdit,
                               QPushButton, QFileDialog, QHBoxLayout, QCheckBox, QMessageBox, QScrollArea, QWidget)
 from app_info import APP_NAME, APP_VERSION
-from netease_install import NeteaseInstaller, find_client, default_profile, atomic_write
+from netease_install import NeteaseInstaller, find_client, default_profile, atomic_write, InstallOperation
 
 
 class InstallWorker(QThread):
-    completed = Signal(object, object)
+    progress = Signal(str)
 
     def __init__(self, installer, action, client, profile, framework, parent=None, *, experimental=False):
         super().__init__(parent)
         self.installer, self.action = installer, action
         self.client, self.profile, self.framework = client, profile, framework
         self.experimental = experimental
+        self.result = self.error = None
+        self.operation = InstallOperation(self.progress.emit, self.isInterruptionRequested)
 
     def run(self):
         try:
             if self.action == "refresh":
+                self.operation.stage("正在刷新在线兼容列表（单次网络等待最多 5 秒）")
                 result = self.installer.policy.refresh()
+                self.operation.check()
             elif self.action == "restore":
-                result = self.installer.restore(self.client, self.profile)
+                result = self.installer.restore(self.client, self.profile, operation=self.operation)
             elif self.action == "install":
-                result = self.installer.install(self.client, self.profile, self.framework, experimental=self.experimental)
+                result = self.installer.install(self.client, self.profile, self.framework, experimental=self.experimental,
+                                                operation=self.operation)
             else:
-                result = self.installer.uninstall(self.client, self.profile)
-            self.completed.emit(result, None)
+                result = self.installer.uninstall(self.client, self.profile, operation=self.operation)
+            self.result = result
         except Exception as error:
-            self.completed.emit(None, error)
+            self.error = error
 
 
 class InstallerWindow(QDialog):
@@ -40,6 +46,11 @@ class InstallerWindow(QDialog):
         super().__init__()
         self.installer, self.args = installer, args
         self.worker = None
+        self.close_pending = False
+        self.cancel_pending = False
+        self.elapsed_timer = QTimer(self)
+        self.elapsed_timer.setInterval(1000)
+        self.elapsed_timer.timeout.connect(self.show_elapsed)
         self.action = "restore" if getattr(args, "restore_netease", False) else "uninstall" if args.uninstall_netease else "install"
         self.setWindowTitle(f"{APP_NAME} {APP_VERSION} · 网易云联动")
         self.resize(640, 680)
@@ -80,7 +91,7 @@ class InstallerWindow(QDialog):
         self.profile.setToolTip("建议保留默认 C:\\betterncm；插件数据目录请使用英文路径。歌词程序目录可含中文。")
         self.add_path(layout, "BetterNCM 数据目录", self.profile, True)
         self.framework = QLineEdit(str(args.framework_dll or ""))
-        self.framework.setPlaceholderText("可选；缺少框架时从官方自动下载并校验")
+        self.framework.setPlaceholderText("可选；离线安装请点“选择”，确认此处显示 DLL 文件路径")
         if not args.uninstall_netease:
             self.add_path(layout, "本地框架 DLL（可选）", self.framework, False)
         self.status = QLabel("卸载仅移除本插件，保留个人设置、字体、预设及共用框架。" if args.uninstall_netease else "准备就绪。安装失败可在此查看原因并重试。")
@@ -94,6 +105,9 @@ class InstallerWindow(QDialog):
         self.restore_button.setVisible(self.action == "install")
         self.restore_button.clicked.connect(lambda: self.start("restore"))
         outer.addWidget(self.restore_button)
+        self.cancel = QPushButton("关闭")
+        self.cancel.clicked.connect(self.cancel_or_close)
+        outer.addWidget(self.cancel)
         self.admin = QPushButton("以管理员身份重试")
         self.admin.clicked.connect(self.elevate)
         self.admin.hide()
@@ -165,6 +179,9 @@ class InstallerWindow(QDialog):
 
     def _run(self, action):
         self.pending_action = action
+        self.close_pending = self.cancel_pending = False
+        self.started_at = time.monotonic()
+        self.phase = "正在准备操作"
         self.apply.setEnabled(False)
         self.admin.hide()
         self.client.setEnabled(False)
@@ -173,16 +190,41 @@ class InstallerWindow(QDialog):
         self.experimental.setEnabled(False)
         self.refresh.setEnabled(False)
         self.restore_button.setEnabled(False)
-        self.status.setText("正在检查并处理，请稍候……")
+        self.cancel.setText("取消操作")
+        self.cancel.setEnabled(True)
+        self.show_elapsed()
         self.worker = InstallWorker(self.installer, action,
                                     Path(self.client.text()), Path(self.profile.text()),
                                     Path(self.framework.text()) if self.framework.text() else None, self,
                                     experimental=self.experimental.isChecked())
-        self.worker.completed.connect(self.complete)
+        self.worker.progress.connect(self.set_phase)
+        self.worker.finished.connect(lambda worker=self.worker: self.complete(worker.result, worker.error))
+        self.elapsed_timer.start()
         self.worker.start()
 
+    def set_phase(self, message):
+        if not self.cancel_pending:
+            self.phase = message
+            self.show_elapsed()
+
+    def show_elapsed(self):
+        self.status.setText(f"{self.phase}\n已用 {int(time.monotonic() - self.started_at)} 秒")
+
+    def cancel_or_close(self):
+        if self.worker and self.worker.isRunning():
+            self.cancel_pending = True
+            self.worker.requestInterruption()
+            self.cancel.setEnabled(False)
+            self.phase = ("正在完成文件事务，无法中途打断；请稍候" if self.worker.operation.committing else
+                          "正在取消，等待当前检查返回（进程检查最多 15 秒，网络单次等待最多 5 秒）")
+            self.show_elapsed()
+        else:
+            self.close()
+
     def complete(self, result, error):
-        self.worker.wait()
+        self.elapsed_timer.stop()
+        self.cancel.setText("关闭")
+        self.cancel.setEnabled(True)
         self.apply.setEnabled(True)
         for editor in (self.client, self.profile, self.framework):
             editor.setEnabled(True)
@@ -190,13 +232,15 @@ class InstallerWindow(QDialog):
         self.refresh.setEnabled(True)
         self.restore_button.setEnabled(True)
         if error:
-            self.status.setText(str(error) + ("\n目录需要写入权限，请点击管理员重试。" if isinstance(error, PermissionError) else ""))
+            self.status.setText(f"{self.phase}\n{error}" + ("\n目录需要写入权限，请点击管理员重试。" if isinstance(error, PermissionError) else ""))
             self.admin.setVisible(isinstance(error, PermissionError) and not self.args.installer_elevated)
         else:
             self.status.setText({"refresh": self.installer.policy.message, "restore": "恢复完成。请重新启动网易云。个人设置已保留。",
                 "uninstall": "卸载完成。请重新启动网易云。个人设置和共用框架已保留。",
                 "install": "安装完成！请重新启动网易云，在播放栏点击“都市回响”，右键或点击“设置”调整效果。"}[self.pending_action])
         self.detect()
+        if self.close_pending:
+            self.close()
 
     def elevate(self):
         arguments = [{"install": "--install-netease", "uninstall": "--uninstall-netease", "restore": "--restore-netease"}[self.pending_action],
@@ -219,9 +263,15 @@ class InstallerWindow(QDialog):
 
     def closeEvent(self, event):
         if self.worker and self.worker.isRunning():
+            self.close_pending = True
+            self.cancel_or_close()
             event.ignore()
         else:
             event.accept()
+
+    def reject(self):
+        # QDialog Escape must follow the same safe cancellation path as the close button.
+        self.close()
 
 
 def run_installer(args, app_dir, templates):
