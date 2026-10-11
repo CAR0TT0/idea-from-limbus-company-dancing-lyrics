@@ -16,6 +16,15 @@ DOCUMENTS = tuple(ROOT / name for name in ("AGENTS.md", "CHANGELOG.md", "README.
 
 
 class WorkflowDocumentationTests(unittest.TestCase):
+    def test_readme_highlights_qq_latency_and_unreleased_cache_support_in_qq_intro(self):
+        text = (ROOT / "README.md").read_text(encoding="utf-8")
+        introduction = text.split("**使用 QQ 音乐**", 1)[1].split("**使用网易云音乐**", 1)[0]
+        self.assertIn("> [!IMPORTANT]", introduction)
+        for phrase in ("本地缓存尚未接入当前下载版", "联网搜索歌曲再获取歌词", "已缓存的歌曲",
+                       "首次播放或没有缓存", "不是切歌到歌词显示的总延迟", "不能保证所有歌曲",
+                       "本地缓存优先、现有官方接口兜底", "docs/QQ歌词缓存研究.md"):
+            self.assertIn(phrase, introduction)
+
     def test_qq_cache_research_distinguishes_measurement_and_product_support(self):
         text = (ROOT / "docs/QQ歌词缓存研究.md").read_text(encoding="utf-8")
         for phrase in ("本轮只做研究", "首次播放写盘延迟", "非零偏移尚未验证", "第二台电脑",
