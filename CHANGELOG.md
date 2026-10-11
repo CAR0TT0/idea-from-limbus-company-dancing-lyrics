@@ -2,6 +2,27 @@
 
 每次改动按日期追加记录，包含改动目的、涉及文件、测试与验证结果、影响或已知限制。
 
+## 2026-10-11：QQ 音乐与网易云音乐独立分包
+
+### 改动
+
+- `tools/package_release.py` 按 `qqmusic`／`netease` 白名单生成两个 ZIP，文件名与根目录明确区分播放器。QQ 包只保留 QQ BAT 和 SMTC 助手；网易云包保留安装、卸载、本地音乐入口和插件模板。均排除另一播放器资源、Mac 脚本、个人设置及日志。
+- 增加 `package-info.json` 和各自 SHA-256；缺少 QtCore／QtGui／QtWidgets 或对应播放器运行资源时停止打包，避免分发缺失模块的成品。两包使用同一份 EXE，沿用 `0.7.0-beta.2` 和已验证的 QQ 搜索修复。
+- 新增 `release/qqmusic/使用说明.txt`、`release/netease/使用说明.txt`；README 提供两份下载，说明不同解压目录及旧 `.state` 迁移。更新 QQ／网易云指南、技术文档、发布说明与 `tools/verify_release.py`，许可归属文档的 Mac 链接改为仓库 URL。
+- 更新 `tests/test_distribution.py`，新增缺失运行文件和错误包类型回归；原打包测试扩展为两包入口隔离、目录隔离、许可及私人数据边界、版本元数据与迁移说明检查。
+
+### 测试与验证
+
+- 全量自动测试 **234 项通过，9.611 秒**，`artifacts/split-packages-tests.txt`。最终 EXE 重新构建；遇到本次源码测试进程占用音频助手，清理已核验路径的测试实例后重建通过，未终止 QQ 音乐。
+- QQ 专用 ZIP 从中文路径完整解压、移除开发环境 PATH 后，实际 BAT 启动 4 项检查通过：原生窗口、版本、真实 QQ 连接与歌词同步，`artifacts/split-qq-public-20261011/qq-public-report.json`。检查只读，不强制暂停或切歌；暂停冻结由本轮先前真实 QQ 6 项采集核验。
+- 网易云专用 ZIP 的隔离安装／更新／重复卸载、设置／字体／预设／令牌／框架保留、安装／卸载原生 BAT 窗口及普通 BAT 验证全部通过，成品静音 75 项通过，`artifacts/split-netease-public-20261011/release-report.json`。真实网易云客户端当时未运行，不需要重启。
+- 原本机 4 个实际设置／预设／联动配置文件的 SHA-256 保持一致，`artifacts/split-packages-state-preservation.json`。两包 ZIP 与校验文件一致、EXE 一致、无私人配置，`artifacts/releases/split-package-integrity.json`：QQ 307 项、70,476,646 字节；网易云 311 项、70,483,478 字节。
+
+### 影响与限制
+
+- 从旧通用包迁移到新的播放器目录时需复制 `.state`；网易云程序路径变化后需重新安装联动。不会自动在两套独立目录之间同步设置，同一时间只运行一个歌词实例。
+- 本轮没有第二台干净电脑、新的网易云实曲播放或更多 QQ 版本验收。QQ 官方搜索仍可能拒绝某些歌曲，无法可靠匹配时提示重试／保持空白；没有宣称所有歌曲全面支持。Mac 公开包保持原样。
+
 ## 2026-10-11：修复 QQ 组合搜索失败后无法显示歌词
 
 ### 改动

@@ -11,7 +11,7 @@ from types import SimpleNamespace
 from PySide6.QtWidgets import QApplication
 from installer_ui import InstallerWindow
 import netease_install as ni
-from tools.package_release import package_release
+from tools.package_release import package_release, archive_name, archive_prefix
 
 ROOT = Path(__file__).resolve().parents[1]
 APP = QApplication.instance() or QApplication([])
@@ -219,17 +219,21 @@ class ReleaseTests(unittest.TestCase):
         from app_info import APP_VERSION, EFFECT_PREVIEW_TEXT
 
         repository = "https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics"
-        filename = f"dancing-lyrics-{APP_VERSION}-windows-x64.zip"
         readme = (ROOT / "README.md").read_text(encoding="utf-8-sig")
         self.assertIn(f"{repository}/releases/tag/v{APP_VERSION}", readme)
         # The existing NetEase recording stays pinned to the release that owns it.
         self.assertIn(f"{repository}/releases/download/v0.6.0-beta.2/dancing-lyrics-demo-30s.mp4", readme)
-        self.assertIn(filename, readme)
         guide = (ROOT / "release/使用说明.txt").read_text(encoding="utf-8-sig")
         self.assertIn(APP_VERSION, guide.splitlines()[0])
         notes = (ROOT / "release/release-notes.md").read_text(encoding="utf-8-sig")
         self.assertIn(f"v{APP_VERSION}", notes.splitlines()[0])
-        self.assertIn(filename, notes)
+        for player in ("qqmusic", "netease"):
+            filename = archive_name(player)
+            self.assertIn(f"{repository}/releases/download/v{APP_VERSION}/{filename}", readme)
+            self.assertIn(filename, notes)
+            provider_guide = (ROOT / f"release/{player}/使用说明.txt").read_text(encoding="utf-8")
+            self.assertIn(APP_VERSION, provider_guide.splitlines()[0])
+            self.assertIn(archive_prefix(player), provider_guide)
         self.assertIn(EFFECT_PREVIEW_TEXT, notes)
 
     def test_upstream_license_bytes_match_provenance_and_survive_git_checkout(self):
@@ -258,6 +262,11 @@ class ReleaseTests(unittest.TestCase):
             (package / "_internal/plugins/netease").mkdir(parents=True)
             (package / "FloatingLyrics.exe").write_bytes(b"engine")
             (package / "_internal/python311.dll").write_bytes(b"runtime")
+            (package / "_internal/PySide6").mkdir()
+            for name in ("Core", "Gui", "Widgets"):
+                (package / f"_internal/PySide6/Qt{name}.pyd").write_bytes(b"Qt runtime")
+            (package / "_internal/native").mkdir()
+            (package / "_internal/native/qqmusic_smtc.ps1").write_bytes(b"reader")
             for name in ("Qt6VirtualKeyboard.dll", "qtvirtualkeyboardplugin.dll", "Qt6Pdf.dll", "qpdf.dll"):
                 (package / "_internal" / name).write_bytes(b"unused Qt plugin")
             for name in ("manifest.json", "adapter.js", "index.js"):
@@ -267,20 +276,63 @@ class ReleaseTests(unittest.TestCase):
             (package / ".state/netease-bridge.json").write_text("DO NOT PUBLISH THIS TOKEN")
             (package / ".state/fonts/private.ttf").write_bytes(b"private font")
             (package / "debug.log").write_text("private logs")
-            output = package_release(package, root / "output")
             from app_info import APP_VERSION
-            self.assertEqual(output.name, f"dancing-lyrics-{APP_VERSION}-windows-x64.zip")
-            with zipfile.ZipFile(output) as archive:
-                names = archive.namelist()
-                guide = archive.read("DancingLyrics/使用说明.txt").decode("utf-8-sig")
-                self.assertIn(APP_VERSION, guide.splitlines()[0])
-                self.assertTrue(any(name.endswith("安装网易云联动.bat") for name in names))
-                self.assertTrue(any(name.endswith("启动QQ音乐联动.bat") for name in names))
-                self.assertTrue(any(name.endswith("licenses/LGPL-3.0.txt") for name in names))
-                self.assertFalse(any(".state" in name or "bridge-config" in name or name.endswith(".log") for name in names))
-                self.assertFalse(any(Path(name).name in ("Qt6VirtualKeyboard.dll", "qtvirtualkeyboardplugin.dll", "Qt6Pdf.dll", "qpdf.dll") for name in names))
-                self.assertFalse(any(b"DO NOT PUBLISH" in archive.read(name) for name in names))
-            self.assertTrue(output.with_suffix(".zip.sha256").exists())
+            outputs = []
+            for player in ("qqmusic", "netease"):
+                with self.subTest(player=player):
+                    output = package_release(package, root / "output", player=player)
+                    outputs.append(output)
+                    self.assertEqual(output.name, archive_name(player))
+                    prefix = archive_prefix(player)
+                    with zipfile.ZipFile(output) as archive:
+                        names = archive.namelist()
+                        self.assertTrue(all(name.startswith(prefix + "/") for name in names))
+                        guide = archive.read(f"{prefix}/使用说明.txt").decode("utf-8-sig")
+                        self.assertIn(APP_VERSION, guide.splitlines()[0])
+                        self.assertIn("QQ 音乐版" if player == "qqmusic" else "网易云音乐版", guide.splitlines()[0])
+                        self.assertEqual(any(name.endswith("安装网易云联动.bat") for name in names), player == "netease")
+                        self.assertEqual(any(name.endswith("卸载网易云联动.bat") for name in names), player == "netease")
+                        self.assertEqual(any(name.endswith("启动QQ音乐联动.bat") for name in names), player == "qqmusic")
+                        self.assertEqual(any(name.endswith("启动.bat") for name in names), player == "netease")
+                        self.assertEqual(any("/plugins/netease/" in name for name in names), player == "netease")
+                        self.assertEqual(any(name.endswith("native/qqmusic_smtc.ps1") for name in names), player == "qqmusic")
+                        info = json.loads(archive.read(f"{prefix}/package-info.json"))
+                        self.assertEqual(info, {"format_version": 1, "app_version": APP_VERSION,
+                                                "player": player, "platform": "windows-x64"})
+                        self.assertTrue(any(name.endswith("licenses/LGPL-3.0.txt") for name in names))
+                        self.assertFalse(any("/macos/" in name or name.endswith(".command") for name in names))
+                        self.assertFalse(any(".state" in name or "bridge-config" in name or name.endswith(".log") for name in names))
+                        self.assertFalse(any(Path(name).name in ("Qt6VirtualKeyboard.dll", "qtvirtualkeyboardplugin.dll", "Qt6Pdf.dll", "qpdf.dll") for name in names))
+                        self.assertFalse(any(b"DO NOT PUBLISH" in archive.read(name) for name in names))
+                    self.assertTrue(output.with_suffix(".zip.sha256").exists())
+            self.assertNotEqual(outputs[0], outputs[1])
+
+    def test_missing_qt_or_player_support_cannot_produce_a_public_zip(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            package = root / "package"
+            (package / "_internal/PySide6").mkdir(parents=True)
+            (package / "FloatingLyrics.exe").write_bytes(b"engine")
+            for name in ("Core", "Gui", "Widgets"):
+                (package / f"_internal/PySide6/Qt{name}.pyd").write_bytes(b"runtime")
+            for player in ("qqmusic", "netease"):
+                with self.subTest(player=player), self.assertRaisesRegex(ValueError, "缺少运行文件"):
+                    package_release(package, root / "output", player=player)
+            (package / "_internal/PySide6/QtCore.pyd").unlink()
+            with self.assertRaisesRegex(ValueError, "QtCore.pyd"):
+                package_release(package, root / "output", player="qqmusic")
+            self.assertFalse((root / "output").exists())
+
+    def test_unknown_package_player_is_rejected_and_split_updates_keep_state(self):
+        with self.assertRaises(ValueError):
+            archive_name("qq")
+        with self.assertRaises(ValueError):
+            package_release(ROOT, ROOT / "artifacts/not-created", player="mixed")
+        for player in ("qqmusic", "netease"):
+            guide = (ROOT / f"release/{player}/使用说明.txt").read_text(encoding="utf-8")
+            self.assertIn(".state 整个复制", guide)
+            self.assertIn("不同解压目录", guide)
+            self.assertIn("同一时间只运行一个歌词实例", guide)
 
     def test_release_documentation_uses_real_repository_and_three_step_install(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8-sig")

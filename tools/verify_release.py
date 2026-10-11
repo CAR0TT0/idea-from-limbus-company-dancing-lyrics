@@ -13,6 +13,7 @@ import time
 import zipfile
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app_info import APP_VERSION
+from tools.package_release import archive_prefix
 
 
 def capture_window(hwnd, path):
@@ -98,7 +99,10 @@ def verify(archive_path, directory, client_exe, framework, profile_directory=Non
         if any(".state" in Path(name).parts or "bridge-config.json" in name for name in archive.namelist()):
             raise ValueError("公开 ZIP 中出现个人连接配置。")
         archive.extractall(directory / "中文 解压路径")
-    app = directory / "中文 解压路径/DancingLyrics"
+    app = directory / "中文 解压路径" / archive_prefix("netease")
+    info = json.loads((app / "package-info.json").read_text(encoding="utf-8"))
+    if info.get("player") != "netease" or info.get("app_version") != APP_VERSION:
+        raise ValueError("请选择当前版本的网易云音乐版 ZIP。")
     exe = app / "FloatingLyrics.exe"
     client = directory / "网易云 隔离客户端"
     profile = Path(profile_directory).resolve() if profile_directory else directory / "BetterNCM-profile"

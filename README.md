@@ -8,6 +8,15 @@
 
 **[下载 Windows x64 试用版](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/tag/v0.7.0-beta.2)** · [问题反馈](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/issues)
 
+Windows 请按播放器选择独立压缩包：
+
+| 使用的播放器 | 下载 | 使用入口 |
+| --- | --- | --- |
+| QQ 音乐 | [下载 QQ 音乐版 ZIP](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.7.0-beta.2/dancing-lyrics-0.7.0-beta.2-qqmusic-windows-x64.zip) | 打开 QQ 音乐，双击“启动QQ音乐联动.bat” |
+| 网易云音乐 | [下载网易云音乐版 ZIP](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.7.0-beta.2/dancing-lyrics-0.7.0-beta.2-netease-windows-x64.zip) | 首次安装联动，之后从网易云播放栏打开 |
+
+两份包使用不同解压目录，入口与说明各自独立，均内置运行环境。旧通用包升级时，先退出歌词程序，将旧 `.state` 整个复制到对应新目录；网易云版还需退出网易云并重新安装联动以更新路径。同一时间只运行一个歌词实例。
+
 **[下载 Mac 实验版](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/tag/v0.6.0-beta.2-macos.1)**（内置 Python）
 
 | Mac 芯片 | 压缩包 |
@@ -27,7 +36,7 @@ QQ 联动需要单独启动，不会随 QQ 音乐自动打开，也不会在 QQ 
 
 **使用网易云音乐**：
 
-1. 下载 `dancing-lyrics-0.7.0-beta.2-windows-x64.zip`，完整解压到长期保留且可写的目录。
+1. 下载 `dancing-lyrics-0.7.0-beta.2-netease-windows-x64.zip`，完整解压到长期保留且可写的目录。
 2. 完全退出网易云（包括托盘），双击 **安装网易云联动.bat**，在窗口点击安装。
 3. 重开网易云，点击播放栏的“都市回响”；右键或点击“设置”调整效果。
 **注意版本注意版本****最好取消自动更新**

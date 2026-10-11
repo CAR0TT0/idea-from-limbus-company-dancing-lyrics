@@ -6,7 +6,7 @@ QQ 音乐继续负责音乐播放，都市回响只读跟随播放信息、显�
 
 ## 三步使用
 
-1. 将新版 Windows ZIP **完整解压**，保留 `FloatingLyrics.exe` 和整个 `_internal` 文件夹。
+1. 将 **QQ 音乐版 ZIP** 完整解压到 `DancingLyrics-QQMusic`，保留 `FloatingLyrics.exe` 和整个 `_internal` 文件夹。不要下载网易云音乐版。
 2. 打开 QQ 音乐并播放歌曲；若都市回响提示等待，请在 QQ 音乐设置中启用系统媒体控制。
 3. 双击 **启动QQ音乐联动.bat**，在“歌词效果”调整字体、颜色、动画与预设。
 
@@ -29,6 +29,8 @@ QQ 音乐继续负责音乐播放，都市回响只读跟随播放信息、显�
 ## 更新、卸载与验证
 
 退出歌词程序后覆盖更新，保留 `.state`，其中的设置、字体与效果预设继续使用。QQ 音乐联动无需安装或卸载客户端插件；退出歌词程序即可停止，删除程序前可备份 `.state`。
+
+从旧通用 ZIP 迁移时，将旧 `.state` 整个复制到新的 `DancingLyrics-QQMusic` 目录。QQ 包只包含 QQ 启动入口及说明，没有网易云安装器；两个包使用不同解压目录以避免覆盖。
 
 原生采集：`.\.venv\Scripts\python.exe main.py --qqmusic --qqmusic-smoke --report-dir artifacts\qq-live`，持续 45 秒，仅收集真实 QQ 数据并退出。需要本机已经运行 QQ 音乐并有可用歌词，不自动播放演示；原生播放、拖动与切歌验证结果和限制见 [验证记录](验证记录.md)。
 
