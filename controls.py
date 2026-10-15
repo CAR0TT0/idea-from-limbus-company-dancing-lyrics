@@ -20,6 +20,7 @@ from settings import resource_path, ANIMATION_STYLES, display_mode
 from glyph_motion import glyph_states
 from presets import PresetStore, EFFECT_KEYS
 from app_info import APP_NAME, APP_VERSION, CREATOR, MOTTO, EFFECT_PREVIEW_TEXT
+from screens import screen_key
 from themes import theme_colors, theme_stylesheet, theme_palette, theme_accent, accent_text, ThemeFrame, ThemeCanvas
 
 
@@ -653,6 +654,15 @@ class ControlPanel(QWidget):
         self.region.addItem("屏幕内自由出现", "full")
         self.region.setCurrentIndex(self.region.findData(self.prefs.region))
         self.region.currentIndexChanged.connect(lambda _: self._set_preference("region", self.region.currentData()))
+        self.screen_combo = QComboBox()
+        self.screen_combo.setAccessibleName("歌词显示屏幕")
+        self.screen_combo.setToolTip("所选显示器断开时暂用主屏，重连后自动恢复。显示屏幕不随效果预设切换。")
+        self._reload_screens()
+        self.screen_combo.currentIndexChanged.connect(lambda _: self._set_preference("display_screen", self.screen_combo.currentData()))
+        app = QApplication.instance()
+        app.screenAdded.connect(self._reload_screens)
+        app.screenRemoved.connect(self._reload_screens)
+        app.primaryScreenChanged.connect(self._reload_screens)
         self.motion = QComboBox()
         self.motion.addItem("跟随音乐强弱", "audio")
         self.motion.addItem("轻波浪", "wave")
@@ -789,7 +799,7 @@ class ControlPanel(QWidget):
         self._reload_fonts()
         self.font_combo.currentIndexChanged.connect(self._font_selected)
         for title, fields in (
-            ("显示与文字", (("显示区域", self.region), ("歌词字体", font_field), ("文字样式", self.text_style),
+            ("显示与文字", (("显示屏幕", self.screen_combo), ("显示区域", self.region), ("歌词字体", font_field), ("文字样式", self.text_style),
                           ("发光风格", self.glow_variant),
                           ("渐变颜色", self.gradient_field), ("渐变方向", self.gradient_direction),
                           ("文字大小", self.spins["font_size"]),
@@ -1145,6 +1155,18 @@ class ControlPanel(QWidget):
         colors = json.loads(self.prefs.gradient_colors)
         values = [colors[0], "#b6a0ee", colors[-1]] if checked else [colors[0], colors[-1]]
         self._set_preference("gradient_colors", json.dumps(values))
+
+    def _reload_screens(self, *_):
+        blocker = QSignalBlocker(self.screen_combo)
+        self.screen_combo.clear()
+        self.screen_combo.addItem("主屏幕（自动跟随）", "primary")
+        for index, screen in enumerate(QApplication.screens()):
+            area = screen.geometry()
+            primary = " · 主屏" if screen is QApplication.primaryScreen() else ""
+            self.screen_combo.addItem(f"显示器 {index+1} · {screen.name()} · {area.width()}×{area.height()}{primary}", screen_key(screen))
+        if self.screen_combo.findData(self.prefs.display_screen) < 0:
+            self.screen_combo.addItem("所选显示器已断开 · 暂用主屏", self.prefs.display_screen)
+        self.screen_combo.setCurrentIndex(self.screen_combo.findData(self.prefs.display_screen))
 
     def choose_gradient_color(self, index):
         colors = json.loads(self.prefs.gradient_colors)

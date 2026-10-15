@@ -9,6 +9,7 @@ from settings import Preferences, display_mode
 from text_effects import TEXT_EFFECTS
 from glyph_motion import glyph_states
 from app_info import APP_NAME
+from screens import select_screen
 
 
 class LyricsOverlay(QWidget):
@@ -34,8 +35,11 @@ class LyricsOverlay(QWidget):
         self.layouts = {}
         self.seed = random.randrange(1_000_000)
         self._screen = None
-        self._bind_screen(QApplication.primaryScreen())
-        QApplication.instance().primaryScreenChanged.connect(self._bind_screen)
+        self.refresh_screen()
+        app = QApplication.instance()
+        app.primaryScreenChanged.connect(self.refresh_screen)
+        app.screenAdded.connect(self.refresh_screen)
+        app.screenRemoved.connect(self.refresh_screen)
         player.discontinuity.connect(self.clear_layouts)
         self.timer = QTimer(self)
         self.timer.setTimerType(Qt.TimerType.PreciseTimer)
@@ -51,8 +55,15 @@ class LyricsOverlay(QWidget):
                 pass
         self._screen = screen
         if screen:
+            if self.windowHandle():
+                self.windowHandle().setScreen(screen)
             screen.availableGeometryChanged.connect(self._screen_changed)
             self._screen_changed()
+
+    def refresh_screen(self, *_):
+        screen = select_screen(QApplication.screens(), QApplication.primaryScreen(), self.prefs.display_screen)
+        if screen is not self._screen:
+            self._bind_screen(screen)
 
     def _screen_changed(self, *_):
         self.setGeometry(self._screen.availableGeometry())
@@ -71,6 +82,7 @@ class LyricsOverlay(QWidget):
         self._sync_timer()
 
     def refresh_preferences(self):
+        self.refresh_screen()
         self.display_document = display_document(self.document, mode=display_mode(self.prefs))
         if self.document:
             self.timeline = self._timeline(self.display_document)

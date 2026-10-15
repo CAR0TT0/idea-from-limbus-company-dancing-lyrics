@@ -34,6 +34,7 @@ class Preferences:
     jump: int = 10
     angle: int = 12
     region: str = "edges"
+    display_screen: str = "primary"
     delay_ms: int = 0
     volume: int = 45
     motion: str = "audio"
@@ -90,6 +91,8 @@ def normalize_preferences(prefs):
         setattr(prefs, key, max(low, min(high, getattr(prefs, key))))
     if prefs.region not in ("edges", "full"):
         prefs.region = "edges"
+    if not prefs.display_screen or len(prefs.display_screen) > 1024 or any(c in prefs.display_screen for c in "\x00\n\r"):
+        prefs.display_screen = "primary"
     if prefs.motion not in ("audio", "wave"):
         prefs.motion = "audio"
     if prefs.text_style not in ("glow", "solid", "gradient_fill"):
