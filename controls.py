@@ -8,9 +8,9 @@ import json
 from PySide6.QtCore import QPointF, QRect, QRectF, QSize, Qt, QTimer, QElapsedTimer, QSignalBlocker
 from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPalette, QPen, QPixmap, QPolygonF
 from PySide6.QtWidgets import (
-    QApplication, QButtonGroup, QColorDialog, QComboBox, QFileDialog, QFormLayout,
+    QApplication, QButtonGroup, QColorDialog, QComboBox as QtComboBox, QFileDialog, QFormLayout,
     QFrame, QHBoxLayout, QLabel, QMenu, QPushButton, QScrollArea, QSizePolicy, QInputDialog, QMessageBox, QCheckBox,
-    QSlider, QSpinBox, QStackedWidget, QStyle, QStyleOptionSlider, QSystemTrayIcon, QVBoxLayout, QWidget,
+    QSlider as QtSlider, QSpinBox as QtSpinBox, QStackedWidget, QStyle, QStyleOptionSlider, QSystemTrayIcon, QVBoxLayout, QWidget,
 )
 from lrc import load_lrc, ActiveLine, TimedWord, LyricLine, LyricDocument, word_timing_status, display_document
 from fonts import FontLibrary
@@ -133,6 +133,21 @@ class ElidedLabel(QLabel):
         painter.drawText(self.contentsRect(), Qt.AlignmentFlag.AlignVCenter,
                          self.fontMetrics().elidedText(self.text(), Qt.TextElideMode.ElideRight,
                                                        self.contentsRect().width()))
+
+
+class QComboBox(QtComboBox):
+    def wheelEvent(self, event):
+        event.ignore()
+
+
+class QSpinBox(QtSpinBox):
+    def wheelEvent(self, event):
+        event.ignore()
+
+
+class QSlider(QtSlider):
+    def wheelEvent(self, event):
+        event.ignore()
 
 
 class LanguageCombo(QComboBox):
