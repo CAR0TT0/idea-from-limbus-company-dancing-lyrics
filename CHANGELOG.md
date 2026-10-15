@@ -801,6 +801,28 @@
 
 ## 2026-10-16：自定义渐变描边与渐变字芯
 
+### 改动
+
 - 修改 settings.py、controls.py、text_effects.py，新增 gradients.py 和 tests/test_gradient_effects.py：白芯渐变描边、渐变字芯，2～3 色及三个方向，预览与预设持久化；渐变锚定原布局，复用模糊缓存。
+
+### 测试与验证
+
 - 全部自动测试 347 项通过（artifacts/gradient-tests.txt）；Windows 静音集成 75 项通过（artifacts/gradient-smoke/smoke-report.json）。新增像素验证覆盖方向、DPI、白芯、消失后的颜色稳定及预设重启。
+
+### 影响与限制
+
 - 尚未重新打包；后续功能完成后统一打包。
+
+## 2026-10-16：双语歌词与原文字词时间映射
+
+### 改动
+
+- 修改 lrc.py、animation.py、glyph_motion.py、overlay.py、controls.py、settings.py、presets.py、text_effects.py；新增 tests/test_bilingual.py。提供原文／中文优先／双语原文在上／双语译文在上，下方为 80% 字号，语言独立保存；按原文范围映射演唱时间，两个语言块共用动画阶段，各自排列逐字顺序。
+
+### 测试与验证
+
+- 全部自动测试 351 项通过（artifacts/bilingual-tests.txt），Windows 静音集成通过（artifacts/bilingual-smoke/smoke-report.json）。覆盖旧语言设置、缺失及重复译文、预设独立、字词范围、上下布局与阶段同步；修正上一条记录的文档章节格式。
+
+### 影响与限制
+
+- 使用来源已有中文译文，无译文显示原文；译文没有原文逐字时间，不伪造翻译或演唱时间。后续统一打包。

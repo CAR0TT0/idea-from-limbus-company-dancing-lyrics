@@ -49,6 +49,7 @@ class Preferences:
     fall_distance: int = 48
     singing_sync: bool = False
     prefer_translation: bool = False
+    lyric_display_mode: str = "legacy"
     theme: str = "light"
     qq_cache_directory: str = ""
 
@@ -106,6 +107,8 @@ def normalize_preferences(prefs):
         prefs.gradient_direction = "horizontal"
     if prefs.animation_style not in ANIMATION_STYLES:
         prefs.animation_style = "classic"
+    if prefs.lyric_display_mode not in ("legacy", "original", "translation", "bilingual_original", "bilingual_translation"):
+        prefs.lyric_display_mode = "legacy"
     if prefs.theme not in ("light", "dark", "special"):
         prefs.theme = "light"
     if not QColor(prefs.color).isValid():
@@ -117,3 +120,7 @@ def normalize_preferences(prefs):
     if not prefs.font_family or len(prefs.font_family) > 256 or any(c in prefs.font_family for c in "\n\r\x00"):
         prefs.font_family = DEFAULT_FONT_FAMILY
     return prefs
+
+
+def display_mode(prefs):
+    return ("translation" if prefs.prefer_translation else "original") if prefs.lyric_display_mode == "legacy" else prefs.lyric_display_mode

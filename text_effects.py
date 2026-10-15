@@ -62,6 +62,7 @@ class LineSurface:
     materials: object = None
     material_key: object = None
     gradient_bounds: object = None
+    gradient_regions: object = None
 
 
 class TextEffects:
@@ -124,15 +125,19 @@ class TextEffects:
         bounds = QRectF()
         assets = []
         gradient_bounds = QRectF()
+        gradient_regions = {0: QRectF(), 1: QRectF()}
         for glyph in glyphs:
             if not glyph.path.isEmpty():
-                gradient_bounds = gradient_bounds.united(glyph.path.boundingRect().translated(glyph.x, glyph.baseline))
+                ink = glyph.path.boundingRect().translated(glyph.x, glyph.baseline)
+                gradient_bounds = gradient_bounds.united(ink)
+                gradient_regions[glyph.language] = gradient_regions[glyph.language].united(ink)
         for glyph in glyphs:
+            glyph_pixels = glyph.pixels or pixels
             gradient_outline = prefs.text_style == "glow" and prefs.glow_variant == "gradient"
-            asset = self.glow(glyph, pixels, prefs.font_family, QColor("white") if gradient_outline else color,
+            asset = self.glow(glyph, glyph_pixels, prefs.font_family, QColor("white") if gradient_outline else color,
                               dpr, prefs.glow_variant) if prefs.text_style != "solid" else None
             if asset and gradient_outline:
-                asset = (gradients.tint(asset[0], asset[1], glyph, gradient_bounds, prefs), asset[1])
+                asset = (gradients.tint(asset[0], asset[1], glyph, gradient_regions[glyph.language], prefs), asset[1])
             if not glyph.path.isEmpty():
                 ink = glyph.path.boundingRect().adjusted(-margin, -margin, margin, margin)
                 if asset:
@@ -144,6 +149,7 @@ class TextEffects:
         bounds = bounds.toAlignedRect()
         surface = LineSurface(glyphs, transparent_image(bounds, dpr), QPointF(bounds.x(), bounds.y()), assets, pixels)
         surface.gradient_bounds = gradient_bounds
+        surface.gradient_regions = gradient_regions
         if prefs.animation_style != "classic" or prefs.singing_sync or gradients.enabled(prefs):
             self._materials(surface, prefs)
         return surface
@@ -166,6 +172,8 @@ class TextEffects:
             if glyph.path.isEmpty():
                 materials.append(None)
                 continue
+            glyph_pixels = glyph.pixels or surface.pixels
+            stroke, radius = effect_geometry(glyph_pixels, prefs.text_style, prefs.glow_variant)
             glow = surface.assets[index]
             if glow:
                 origin = glow[1]
@@ -181,19 +189,20 @@ class TextEffects:
                 painter.setOpacity(prefs.glow_strength / 100)
                 painter.drawImage(origin, glow[0])
             painter.setOpacity(1)
-            outline_brush = gradients.brush(surface.gradient_bounds, glyph, prefs) if prefs.text_style == "glow" and prefs.glow_variant == "gradient" else outline
+            region = surface.gradient_regions[glyph.language]
+            outline_brush = gradients.brush(region, glyph, prefs) if prefs.text_style == "glow" and prefs.glow_variant == "gradient" else outline
             painter.setPen(QPen(outline_brush if prefs.text_style != "solid" else QColor(10, 22, 26, 210),
                                 stroke * 2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
             painter.setBrush(Qt.BrushStyle.NoBrush if prefs.text_style != "solid" else QColor(prefs.color))
             if prefs.text_style == "glow" and prefs.glow_variant == "gradient":
                 painter.save()
-                painter.translate(.75 * surface.pixels / 32, .75 * surface.pixels / 32)
+                painter.translate(.75 * glyph_pixels / 32, .75 * glyph_pixels / 32)
                 painter.drawPath(glyph.path)
                 painter.restore()
             painter.drawPath(glyph.path)
             if prefs.text_style != "solid":
                 painter.setPen(Qt.PenStyle.NoPen)
-                painter.setBrush(gradients.brush(surface.gradient_bounds, glyph, prefs) if prefs.text_style == "gradient_fill" else core)
+                painter.setBrush(gradients.brush(region, glyph, prefs) if prefs.text_style == "gradient_fill" else core)
                 painter.drawPath(glyph.path)
             painter.end()
             painter = QPainter(mask)
@@ -204,7 +213,7 @@ class TextEffects:
             painter.setBrush(Qt.GlobalColor.white)
             if prefs.text_style == "glow" and prefs.glow_variant == "gradient":
                 painter.save()
-                painter.translate(.75 * surface.pixels / 32, .75 * surface.pixels / 32)
+                painter.translate(.75 * glyph_pixels / 32, .75 * glyph_pixels / 32)
                 painter.drawPath(glyph.path)
                 painter.restore()
             painter.drawPath(glyph.path)

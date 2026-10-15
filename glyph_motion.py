@@ -56,6 +56,8 @@ def word_emphasis(glyph, words, position):
 def glyph_states(glyphs, prefs, item, position_ms, energy, pixels, seed=0, angle=0, moving=True):
     visible = [glyph for glyph in glyphs if not glyph.path.isEmpty()]
     count, rank = len(visible), 0
+    group_counts = {language: sum(glyph.language == language for glyph in visible) for language in (0, 1)}
+    ranks = {0: 0, 1: 0}
     seconds = position_ms / 1000
     amplitude = prefs.jump * (.35 + .65 * max(0., min(1., energy)))
     falling = prefs.animation_style.startswith("fall_")
@@ -66,6 +68,8 @@ def glyph_states(glyphs, prefs, item, position_ms, energy, pixels, seed=0, angle
         if glyph.path.isEmpty():
             result.append(GlyphState(glyph.x, glyph.baseline, 0))
             continue
+        count, rank = group_counts[glyph.language], ranks[glyph.language]
+        ranks[glyph.language] += 1
         emphasis = word_emphasis(glyph, item.words, position_ms) if prefs.singing_sync else 0
         if prefs.animation_style == "classic":
             dy = -prefs.jump * energy * (0.6 + 0.4 * math.sin(seconds * 8 - glyph.index * .6)) if moving else 0

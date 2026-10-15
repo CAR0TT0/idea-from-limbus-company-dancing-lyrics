@@ -5,7 +5,7 @@ from PySide6.QtGui import QPainter
 from PySide6.QtWidgets import QApplication, QWidget
 from animation import build_layout, display_regions
 from lrc import LyricTimeline, LyricDocument, display_document
-from settings import Preferences
+from settings import Preferences, display_mode
 from text_effects import TEXT_EFFECTS
 from glyph_motion import glyph_states
 from app_info import APP_NAME
@@ -59,7 +59,7 @@ class LyricsOverlay(QWidget):
         self.clear_layouts()
 
     def set_document(self, document: LyricDocument | None):
-        displayed = display_document(document, self.prefs.prefer_translation)
+        displayed = display_document(document, mode=display_mode(self.prefs))
         same_text = bool(displayed and self.display_document and [(line.start_ms, line.text) for line in displayed.lines]
                          == [(line.start_ms, line.text) for line in self.display_document.lines])
         self.document = document
@@ -71,7 +71,7 @@ class LyricsOverlay(QWidget):
         self._sync_timer()
 
     def refresh_preferences(self):
-        self.display_document = display_document(self.document, self.prefs.prefer_translation)
+        self.display_document = display_document(self.document, mode=display_mode(self.prefs))
         if self.document:
             self.timeline = self._timeline(self.display_document)
         self.clear_layouts()
@@ -145,7 +145,7 @@ class LyricsOverlay(QWidget):
             if item.index in self.layouts:
                 continue
             occupied = [layout.bounds for layout in self.layouts.values()]
-            layout = build_layout(item.text, self.seed + item.index * 7919, regions, occupied, self.prefs)
+            layout = build_layout(item.text, self.seed + item.index * 7919, regions, occupied, self.prefs, item.secondary_start)
             if layout:
                 self.layouts[item.index] = layout
         energy = self.player.energy_at(position)
@@ -177,7 +177,7 @@ class LyricsOverlay(QWidget):
                                                       self.devicePixelRatioF(), self.prefs.jump, layout.angle)
             states = (glyph_states(layout.glyphs, self.prefs, item, position, energy, layout.font_size,
                                    self.seed + item.index * 7919, layout.angle)
-                      if self.prefs.animation_style != "classic" or self.prefs.singing_sync else None)
+                      if self.prefs.animation_style != "classic" or self.prefs.singing_sync or item.secondary_start >= 0 else None)
             image = TEXT_EFFECTS.render(layout.surface, self.prefs, seconds, energy, moving=True, states=states)
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
             painter.drawImage(layout.surface.origin, image)

@@ -12,11 +12,11 @@ from PySide6.QtWidgets import (
     QFrame, QHBoxLayout, QLabel, QMenu, QPushButton, QScrollArea, QSizePolicy, QInputDialog, QMessageBox, QCheckBox,
     QSlider, QSpinBox, QStackedWidget, QStyle, QStyleOptionSlider, QSystemTrayIcon, QVBoxLayout, QWidget,
 )
-from lrc import load_lrc, ActiveLine, TimedWord, word_timing_status, display_document
+from lrc import load_lrc, ActiveLine, TimedWord, LyricLine, LyricDocument, word_timing_status, display_document
 from fonts import FontLibrary
 from animation import _glyph_layout
 from text_effects import TEXT_EFFECTS
-from settings import resource_path, ANIMATION_STYLES
+from settings import resource_path, ANIMATION_STYLES, display_mode
 from glyph_motion import glyph_states
 from presets import PresetStore, EFFECT_KEYS
 from app_info import APP_NAME, APP_VERSION, CREATOR, MOTTO, EFFECT_PREVIEW_TEXT
@@ -135,6 +135,15 @@ class ElidedLabel(QLabel):
                                                        self.contentsRect().width()))
 
 
+class LanguageCombo(QComboBox):
+    """Language selection; legacy setters keep older smoke scripts usable."""
+    def setChecked(self, checked):
+        self.setCurrentIndex(self.findData("translation" if checked else "original"))
+
+    def isChecked(self):
+        return self.currentData() == "translation"
+
+
 class ThinSlider(QSlider):
     """Flat tracks with QSlider's native input, keyboard and accessibility behavior."""
     display_only = False
@@ -232,8 +241,17 @@ class FontPreview(QWidget):
         words = tuple(TimedWord(round(800 + 2200 * order / len(units)),
                                 round(800 + 2200 * (order + 1) / len(units)), index, index + 1)
                       for order, index in enumerate(units))
-        return ActiveLine(0, EFFECT_PREVIEW_TEXT, 0, end, 1,
-                          min(700 * 100 / self.prefs.entry_speed, 3200 * .35), 3200, words)
+        line = LyricLine(0, EFFECT_PREVIEW_TEXT, words)
+        if display_mode(self.prefs).startswith("bilingual"):
+            import re
+            text = "Let's visit the library one day."
+            units = list(re.finditer(r"\S+", text))
+            words = tuple(TimedWord(round(800 + 2200 * i / len(units)), round(800 + 2200 * (i+1) / len(units)),
+                                    unit.start(), unit.end()) for i, unit in enumerate(units))
+            line = display_document(LyricDocument([LyricLine(0, text, words, EFFECT_PREVIEW_TEXT)], []),
+                                    mode=display_mode(self.prefs)).lines[0]
+        return ActiveLine(0, line.text, 0, end, 1,
+                          min(700 * 100 / self.prefs.entry_speed, 3200 * .35), 3200, line.words, line.secondary_start)
 
     def _stop_preview(self):
         self._position = self._preview_position()
@@ -265,16 +283,17 @@ class FontPreview(QWidget):
         pixels = min(28, self.prefs.font_size)
         key = (self.width(), pixels, self.prefs.font_family, self.prefs.color, self.prefs.text_style, self.prefs.glow_variant,
                self.devicePixelRatioF(), self.prefs.animation_style, self.prefs.jump, self.prefs.fall_distance, self.prefs.singing_sync,
-               self.prefs.gradient_colors, self.prefs.gradient_direction)
+               self.prefs.gradient_colors, self.prefs.gradient_direction, display_mode(self.prefs))
         if key != self._key:
-            glyphs, _, _ = _glyph_layout(EFFECT_PREVIEW_TEXT, pixels,
-                                         max(1, self.width() - 48), self.prefs.font_family)
+            item = self._preview_item()
+            glyphs, _, _ = _glyph_layout(item.text, pixels,
+                                         max(1, self.width() - 48), self.prefs.font_family, item.secondary_start)
             self._surface = TEXT_EFFECTS.prepare(glyphs, pixels, self.prefs, self.devicePixelRatioF(), self.prefs.jump)
             self._key = key
         position = self._preview_position()
         states = (glyph_states(self._surface.glyphs, self.prefs,
                               self._preview_item(), position, .5, pixels, 730)
-                  if self.prefs.animation_style != "classic" or self.prefs.singing_sync else None)
+                  if self.prefs.animation_style != "classic" or self.prefs.singing_sync or self._preview_item().secondary_start >= 0 else None)
         image = TEXT_EFFECTS.render(self._surface, self.prefs, states=states)
         width = 2 * max(abs(self._surface.origin.x()), abs(self._surface.origin.x() + image.width() / image.devicePixelRatio()))
         height = 2 * max(abs(self._surface.origin.y()), abs(self._surface.origin.y() + image.height() / image.devicePixelRatio()))
@@ -741,10 +760,14 @@ class ControlPanel(QWidget):
         self.font_status = label(self._font_message or ("部分导入字体无法加载，可重新导入。" if self.font_library.errors else
                                  "支持 TTF、OTF、TTC；选择后立即生效并自动保存。"), "muted")
         self.font_status.setWordWrap(True)
-        self.translation_checkbox = QCheckBox("有中文翻译时优先显示译文")
-        self.translation_checkbox.setChecked(self.prefs.prefer_translation)
-        self.translation_checkbox.setToolTip("逐句选择中文译文，无翻译时显示原文。译文按整句同步，不套用原文字词时间。")
-        self.translation_checkbox.toggled.connect(lambda value: self._set_preference("prefer_translation", value))
+        self.translation_checkbox = LanguageCombo()
+        self.language_combo = self.translation_checkbox
+        for title, mode in (("原文", "original"), ("中文优先", "translation"), ("双语 · 原文在上", "bilingual_original"), ("双语 · 译文在上", "bilingual_translation")):
+            self.language_combo.addItem(title, mode)
+        self.language_combo.setCurrentIndex(self.language_combo.findData(display_mode(self.prefs)))
+        self.language_combo.setAccessibleName("歌词显示语言")
+        self.language_combo.setToolTip("双语下方文字为上方的 80%；无译文显示原文。译文按整句同步。")
+        self.language_combo.currentIndexChanged.connect(lambda _: self._set_preference("lyric_display_mode", self.language_combo.currentData()))
         self._reload_fonts()
         self.font_combo.currentIndexChanged.connect(self._font_selected)
         for title, fields in (
@@ -1055,6 +1078,10 @@ class ControlPanel(QWidget):
 
     def _set_preference(self, key, value):
         setattr(self.prefs, key, value)
+        if key == "lyric_display_mode":
+            self.prefs.prefer_translation = value == "translation"
+        elif key == "prefer_translation":
+            self.prefs.lyric_display_mode = "translation" if value else "original"
         if key in EFFECT_KEYS and self._preset_id:
             self._preset_modified = True
             self._reload_presets()
@@ -1062,7 +1089,7 @@ class ControlPanel(QWidget):
         self.overlay.refresh_preferences()
         self._update_effect_controls()
         self.font_preview.update()
-        if key in ("animation_style", "entry_speed", "exit_speed", "shake_frequency", "fall_distance", "singing_sync"):
+        if key in ("animation_style", "entry_speed", "exit_speed", "shake_frequency", "fall_distance", "singing_sync", "lyric_display_mode"):
             self.font_preview.replay()
 
     def _update_effect_controls(self):
@@ -1110,10 +1137,10 @@ class ControlPanel(QWidget):
 
     def _refresh_word_status(self):
         waiting = not getattr(self.player, "lyrics_received", False) if self.external else self.player.path is None
-        displayed = display_document(self.overlay.document, self.prefs.prefer_translation)
-        translated = bool(displayed and self.prefs.prefer_translation and any(
+        displayed = display_document(self.overlay.document, mode=display_mode(self.prefs))
+        translated = bool(displayed and display_mode(self.prefs) != "original" and any(
             a.text != b.text for a, b in zip(displayed.lines, self.overlay.document.lines)))
-        status = word_timing_status(displayed, waiting)
+        status = word_timing_status(self.overlay.document if display_mode(self.prefs).startswith("bilingual") else displayed, waiting)
         self.word_status.setText(status + " · 中文译文按整句同步" if translated else status)
 
     def _reload_presets(self):
@@ -1146,7 +1173,7 @@ class ControlPanel(QWidget):
             slider.setValue(getattr(self.prefs, key))
         self.glow_slider.setValue(self.prefs.glow_strength)
         self.singing_checkbox.setChecked(self.prefs.singing_sync)
-        self.translation_checkbox.setChecked(self.prefs.prefer_translation)
+        self.language_combo.setCurrentIndex(self.language_combo.findData(display_mode(self.prefs)))
         self.theme_combo.setCurrentIndex(self.theme_combo.findData(self.prefs.theme))
         if self.styleSheet() != theme_stylesheet(self.prefs.theme):
             self._apply_theme()
