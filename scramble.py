@@ -16,10 +16,8 @@ def paths(family, pixels, width, center_x, center_y):
     for index in range(8):
         path = QPainterPath()
         path.addText(QPointF(), font, available[index % len(available)])
-        bounds = path.boundingRect()
-        scale = min(1, max(1, width) / max(1, bounds.width()))
-        path = QTransform().scale(scale, scale).map(path)
-        center = path.boundingRect().center()
-        path.translate(center_x-center.x(), center_y-center.y())
+        # Keep one canonical path per symbol/font. Cell fitting happens at
+        # composition time, so narrow characters do not require new blurs.
+        path.translate(-path.boundingRect().center().x(), 0)
         result.append(path)
     return tuple(result)

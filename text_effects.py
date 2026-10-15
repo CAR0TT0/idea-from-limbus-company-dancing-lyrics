@@ -65,6 +65,7 @@ class LineSurface:
     gradient_bounds: object = None
     gradient_regions: object = None
     replacements: object = None
+    replacement_scales: object = None
 
 
 class TextEffects:
@@ -167,15 +168,19 @@ class TextEffects:
             self._materials(surface, prefs)
         if prefs.scramble_exit and _replacements:
             variants = []
+            variant_scales = []
             for glyph in glyphs:
                 if glyph.path.isEmpty():
                     variants.append(None)
+                    variant_scales.append(None)
                     continue
                 center = glyph.path.boundingRect().center()
                 paths = scramble.paths(prefs.font_family, glyph.pixels or pixels, glyph.cell_width or glyph.path.boundingRect().width(), center.x(), center.y())
                 items = []
+                scales = []
                 region = gradient_regions[glyph.language]
                 for index, path in enumerate(paths):
+                    scales.append(min(1, max(1, glyph.cell_width or glyph.path.boundingRect().width()) / max(1, path.boundingRect().width())))
                     key = (prefs.font_family, glyph.pixels or pixels, glyph.cell_width, center.x(), center.y(), glyph.x, glyph.baseline,
                            dpr, prefs.text_style, prefs.glow_variant, prefs.color, prefs.gradient_colors, prefs.gradient_direction,
                            prefs.glow_strength, prefs.singing_sync, region.getRect(), index)
@@ -194,7 +199,9 @@ class TextEffects:
                     items.append(material)
                     bounds = bounds.united(QRectF(QPointF(material[2]) + QPointF(glyph.x, glyph.baseline), material[0].deviceIndependentSize()).toAlignedRect())
                 variants.append(items)
+                variant_scales.append(scales)
             surface.replacements = variants
+            surface.replacement_scales = variant_scales
             surface.origin = QPointF(bounds.x(), bounds.y())
             surface.image = transparent_image(bounds, dpr)
         return surface
@@ -288,14 +295,16 @@ class TextEffects:
 
         def draw(index, layer, opacity):
             material, state = materials[index], states[index]
+            fit = 1
             if state.replacement >= 0 and surface.replacements and surface.replacements[index]:
                 material = surface.replacements[index][state.replacement]
+                fit = surface.replacement_scales[index][state.replacement]
             if material is None or state.opacity <= 0:
                 return
             painter.save()
             painter.translate(state.x, state.y)
             painter.rotate(state.rotation)
-            painter.scale(state.scale, state.scale)
+            painter.scale(state.scale * fit, state.scale * fit)
             painter.setOpacity(opacity)
             painter.drawImage(material[2], material[layer])
             painter.restore()

@@ -6,14 +6,14 @@
 
 桌面实机录屏，约 18 秒，循环播放（GIF 无声）。
 
-**[下载 Windows x64 试用版](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/tag/v0.7.0-beta.7)** · [问题反馈](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/issues)
+**[下载 Windows x64 试用版](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/tag/v0.8.0-beta.1)** · [问题反馈](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/issues)
 
 Windows 请按播放器选择独立压缩包：
 
 | 使用的播放器 | 下载 | 使用入口 |
 | --- | --- | --- |
-| QQ 音乐 | [下载 QQ 音乐版 ZIP](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.7.0-beta.7/dancing-lyrics-0.7.0-beta.7-qqmusic-windows-x64.zip) | 打开 QQ 音乐，双击“启动QQ音乐联动.bat” |
-| 网易云音乐 | [下载网易云音乐版 ZIP](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.7.0-beta.7/dancing-lyrics-0.7.0-beta.7-netease-windows-x64.zip) | 首次安装联动，之后从网易云播放栏打开 |
+| QQ 音乐 | [下载 QQ 音乐版 ZIP](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.8.0-beta.1/dancing-lyrics-0.8.0-beta.1-qqmusic-windows-x64.zip) | 打开 QQ 音乐，双击“启动QQ音乐联动.bat” |
+| 网易云音乐 | [下载网易云音乐版 ZIP](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.8.0-beta.1/dancing-lyrics-0.8.0-beta.1-netease-windows-x64.zip) | 首次安装联动，之后从网易云播放栏打开 |
 
 两份包使用不同解压目录，入口与说明各自独立，均内置运行环境。旧通用包升级时，先退出歌词程序，将旧 `.state` 整个复制到对应新目录；网易云版还需退出网易云并重新安装联动以更新路径。同一时间只运行一个歌词实例。
 
@@ -57,7 +57,7 @@ Mac：解压后将 `都市回响.app` 拖到“应用程序”，首次运行包
 
 **使用网易云音乐**：
 
-1. 下载 `dancing-lyrics-0.7.0-beta.7-netease-windows-x64.zip`，完整解压到长期保留且可写的目录。
+1. 下载 `dancing-lyrics-0.8.0-beta.1-netease-windows-x64.zip`，完整解压到长期保留且可写的目录。
 2. 完全退出网易云（包括托盘），双击 **安装网易云联动.bat**，在窗口点击安装。
 3. 重开网易云，点击播放栏的“都市回响”；右键或点击“设置”调整效果。
 无需 Python 或 Git。请下载 ZIP 成品，页面的 Source code 是源码。同一个 ZIP 自动识别 **网易云 3.1.40.205461／3.1.41.205529 x64**。已验证 Windows 11 x64、BetterNCM 1.3.4；尚未在第二台干净电脑完成试装。
@@ -72,7 +72,7 @@ QQ 音乐沿用系统媒体与本地缓存检测，不设客户端版本白名�
 
 ![网易云兼容检测与实验性安装窗口](docs/images/compatibility-installer.png)
 
-**安装一直等待或无法关闭？** v0.7.0-beta.7 会显示具体阶段及已用时间，支持“取消操作”，右上角关闭和 Esc 也会请求取消。当前检查返回后退出；文件写入期间先完成或回滚再退出。框架下载设有 45 秒总预算、5 秒单次网络等待，进程检查最多 15 秒。详见 [安装排查与本地 DLL 使用方法](NETEASE.md)。
+**安装一直等待或无法关闭？** v0.8.0-beta.1 会显示具体阶段及已用时间，支持“取消操作”，右上角关闭和 Esc 也会请求取消。当前检查返回后退出；文件写入期间先完成或回滚再退出。框架下载设有 45 秒总预算、5 秒单次网络等待，进程检查最多 15 秒。详见 [安装排查与本地 DLL 使用方法](NETEASE.md)。
 
 离线安装框架时，在“本地框架 DLL → 选择”中选中文件，**确认输入框出现实际 DLL 路径**，再安装；只有“BetterNCM 数据目录”路径或 DLL 栏仍为灰色提示文字时，尚未选择 DLL。文件来源和校验要求见上述说明。
 
@@ -101,7 +101,7 @@ Intel 与 Apple Silicon 的适配器及共用绘制自动测试已通过，安�
 
 ## 功能与使用
 
-应用版本 **0.7.0-beta.7**；现有 Mac 公开包仍为 0.6.0-beta.2 实验版，本轮 QQ 适配仅用于 Windows。侧栏显示“创作者：Bilibili-鈴仙優昙華院因幡”和版本号，标语为 **FACE THE SIN. SAVE THE E.G.O**。左侧下方可选择“默认主题／深色主题／特殊主题”，立即生效并自动保存，重启后保留选择。默认主题和深色主题保留原外观；特殊主题采用 Limbus Company 风格的黑金配色、切角双层边框和机械图纸底纹。
+应用版本 **0.8.0-beta.1**；现有 Mac 公开包仍为 0.6.0-beta.2 实验版，本轮 QQ 适配仅用于 Windows。侧栏显示“创作者：Bilibili-鈴仙優昙華院因幡”和版本号，标语为 **FACE THE SIN. SAVE THE E.G.O**。左侧下方可选择“默认主题／深色主题／特殊主题”，立即生效并自动保存，重启后保留选择。默认主题和深色主题保留原外观；特殊主题采用 Limbus Company 风格的黑金配色、切角双层边框和机械图纸底纹。
 
 特殊主题将侧栏、窗口、运行中的 Windows 任务栏及系统托盘图标换为但丁钟头；切回默认或深色主题恢复红色波形图标。后台运行时托盘也显示当前主题图标。主题不改变歌词颜色、字体、动画、效果预设、播放进度或独立的预览背景；更新保留已有选择。安装目录里的 EXE 文件图标仍为原图标，未运行时的固定快捷方式由 Windows 管理。
 
@@ -199,3 +199,21 @@ python tools\encode_animation_recording.py artifacts\animations-demo
 本机的完整依赖快照保存为 `requirements-lock.txt`，便于复现构建环境。已有检查结果见《验证记录.md》。
 
 设计细节见同目录的《产品设计方案》和《技术文档》。
+
+
+## 新增效果使用方法
+
+- 渐变描边：歌词效果 → 白芯发光 → 渐变描边；字芯保持白色。渐变字芯：文字样式 → 渐变字芯，描边与光晕仍用单色。可选两色、添加中间色及横向／纵向／斜向渐变，立即预览、保存，可存为效果预设。
+- 歌词语言：原文／中文优先／双语·原文在上／双语·译文在上。下方文字为上方的 80%，无有效译文显示原文；译文仅按句同步，不套用原文逐字时间。
+- 乱码退场：在律动与同步中开启，替代原退场；原字符依次变成符号后从左向右消失。复用退场速度，暂停冻结、跳转直接重建。
+- 显示屏幕：选择主屏自动跟随或指定显示器；断开暂用主屏，重连后恢复。无序列号设备重新枚举后可能需要重选。
+- 纯音乐时不显示歌词或提示：默认关闭；开启后隐藏来源明确的纯音乐标记／提示，不根据歌曲名称或暂未获取歌词猜测。无歌词仍为空白。
+- 滚轮只浏览页面，不再修改下拉框、数字和滑块；保留点击、输入、拖动与键盘操作。语言、屏幕及纯音乐开关不随效果预设切换。
+
+![渐变描边与双语实际 Qt 预览](docs/images/gradient-outline-bilingual-dark.png)
+
+![渐变字芯与双语浅色背景预览](docs/images/gradient-fill-bilingual-light.png)
+
+![双语渐变与从左向右乱码退场演示](docs/images/scramble-bilingual-demo.gif)
+
+上方为实际 Qt 窗口逐帧采集的 4 秒演示，使用演示句子和时间，不播放音乐。深浅背景、三档缩放、真实 QQ／网易云播放及性能结果见 [验证记录](验证记录.md)。双句双语叠加乱码在本机 150% 缩放的暖缓存 P95 为 12.286–14.472ms；首次准备含所有替换字符的材质最慢约 1.81 秒，不能把暖绘制耗时当作首次响应时间。本机只有一块屏幕，多屏拔插尚需真机补测。
