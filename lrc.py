@@ -31,6 +31,7 @@ class LyricDocument:
     lines: list[LyricLine]
     warnings: list[str]
     offset_ms: int = 0
+    instrumental: bool = False
 
 
 def chinese_translation(text):
@@ -39,7 +40,19 @@ def chinese_translation(text):
             and any('\u3400' <= c <= '\u9fff' or '\U00020000' <= c <= '\U0003134f' for c in text))
 
 
-def display_document(document, prefer_translation=False, mode=None):
+def instrumental_document(document):
+    if document is None:
+        return False
+    if document.instrumental:
+        return True
+    texts = [re.sub(r"[\s，,。.!！:：]", "", line.text) for line in document.lines if line.text.strip()]
+    markers = {"纯音乐请欣赏", "纯音乐请您欣赏", "此歌曲为没有填词的纯音乐"}
+    return bool(texts) and all(text in markers for text in texts)
+
+
+def display_document(document, prefer_translation=False, mode=None, hide_instrumental=False):
+    if hide_instrumental and instrumental_document(document):
+        return None
     mode = mode or ("translation" if prefer_translation else "original")
     if document is None or mode == "original":
         return document
@@ -57,7 +70,7 @@ def display_document(document, prefer_translation=False, mode=None):
             words = tuple(replace(word, text_start=word.text_start+start, text_end=word.text_end+start)
                           for word in line.words) if mode == "bilingual_translation" else line.words
             lines.append(replace(line, text=primary + "\n" + secondary, words=words, secondary_start=start))
-    return LyricDocument(lines, list(document.warnings), document.offset_ms)
+    return LyricDocument(lines, list(document.warnings), document.offset_ms, document.instrumental)
 
 
 def parse_lrc(text: str) -> LyricDocument:

@@ -868,3 +868,17 @@
 ### 影响与限制
 
 - 未提供序列号的设备使用 Qt 屏幕名称标识；硬件重枚举后可能需要重新选择。真实双屏及插拔范围将在最终验证记录中单独注明，不用模拟测试代替硬件验收。
+
+## 2026-10-16：纯音乐隐藏开关
+
+### 改动
+
+- 修改 settings.py、presets.py、lrc.py、netease.py、overlay.py、controls.py，新增 tests/test_instrumental_display.py；独立保存“纯音乐时不显示歌词或提示”，过滤明确来源标记或纯音乐提示，保留原始文档及音乐状态。
+
+### 测试与验证
+
+- 全部自动测试 362 项通过（artifacts/instrumental-tests.txt），Windows 静音集成通过（artifacts/instrumental-smoke/smoke-report.json）。覆盖提示、来源标记、真实歌词不误判、无歌词、暂停开关、重启保存及预设独立。
+
+### 影响与限制
+
+- 默认关闭以保留旧设置体验；开启后纯音乐提示也不显示。不根据歌名或暂未获取歌词推断纯音乐；来源没有标记且存在其他文本时保持原样，避免误隐藏。

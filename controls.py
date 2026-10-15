@@ -796,6 +796,10 @@ class ControlPanel(QWidget):
         self.language_combo.setAccessibleName("歌词显示语言")
         self.language_combo.setToolTip("双语下方文字为上方的 80%；无译文显示原文。译文按整句同步。")
         self.language_combo.currentIndexChanged.connect(lambda _: self._set_preference("lyric_display_mode", self.language_combo.currentData()))
+        self.instrumental_checkbox = QCheckBox("纯音乐时不显示歌词或提示")
+        self.instrumental_checkbox.setChecked(self.prefs.hide_instrumental)
+        self.instrumental_checkbox.setToolTip("隐藏明确的纯音乐标记／提示；不根据歌曲名称或暂未获取歌词来猜测。")
+        self.instrumental_checkbox.toggled.connect(lambda value: self._set_preference("hide_instrumental", value))
         self._reload_fonts()
         self.font_combo.currentIndexChanged.connect(self._font_selected)
         for title, fields in (
@@ -804,7 +808,7 @@ class ControlPanel(QWidget):
                           ("渐变颜色", self.gradient_field), ("渐变方向", self.gradient_direction),
                           ("文字大小", self.spins["font_size"]),
                           (self.color_label, self.color_button), ("发光强度", self.glow_field),
-                          ("歌词透明度", self.spins["opacity"]), ("歌词语言", self.translation_checkbox))),
+                          ("歌词透明度", self.spins["opacity"]), ("歌词语言", self.translation_checkbox), ("纯音乐显示", self.instrumental_checkbox))),
             ("律动与同步", (("歌词动画", self.animation_combo),
                           ("乱码退场", self.scramble_checkbox),
                           ("入场速度", self.parameter_fields["entry_speed"]), ("退场速度", self.parameter_fields["exit_speed"]),
@@ -1202,7 +1206,7 @@ class ControlPanel(QWidget):
 
     def _sync_effect_widgets(self):
         widgets = [self.animation_combo, self.text_style, self.glow_variant, self.motion, self.font_combo, self.glow_slider,
-                   self.singing_checkbox, self.translation_checkbox, self.theme_combo, self.scramble_checkbox,
+                   self.singing_checkbox, self.translation_checkbox, self.theme_combo, self.scramble_checkbox, self.instrumental_checkbox,
                    *self.spins.values(), *self.parameter_sliders.values()]
         blockers = [QSignalBlocker(widget) for widget in widgets]
         for widget, key in ((self.animation_combo, "animation_style"), (self.text_style, "text_style"),
@@ -1215,6 +1219,7 @@ class ControlPanel(QWidget):
         self.glow_slider.setValue(self.prefs.glow_strength)
         self.singing_checkbox.setChecked(self.prefs.singing_sync)
         self.scramble_checkbox.setChecked(self.prefs.scramble_exit)
+        self.instrumental_checkbox.setChecked(self.prefs.hide_instrumental)
         self.language_combo.setCurrentIndex(self.language_combo.findData(display_mode(self.prefs)))
         self.theme_combo.setCurrentIndex(self.theme_combo.findData(self.prefs.theme))
         if self.styleSheet() != theme_stylesheet(self.prefs.theme):

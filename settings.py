@@ -52,6 +52,7 @@ class Preferences:
     singing_sync: bool = False
     prefer_translation: bool = False
     lyric_display_mode: str = "legacy"
+    hide_instrumental: bool = False
     theme: str = "light"
     qq_cache_directory: str = ""
 

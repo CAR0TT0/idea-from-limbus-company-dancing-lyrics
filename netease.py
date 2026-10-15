@@ -78,7 +78,7 @@ def validate_snapshot(data: dict, allowed_client=None) -> dict:
             translation = line.get("translation", "")
             cleaned.append(LyricLine(int(_number(line.get("time_ms"), 24 * 3600 * 1000)), line["text"], tuple(words),
                                      translation.strip() if chinese_translation(translation) else ""))
-        result["document"] = LyricDocument(sorted(cleaned, key=lambda line: line.start_ms), []) if cleaned else None
+        result["document"] = LyricDocument(sorted(cleaned, key=lambda line: line.start_ms), [], instrumental=data.get("instrumental") is True) if cleaned else None
     return result
 
 

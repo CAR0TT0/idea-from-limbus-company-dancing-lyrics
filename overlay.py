@@ -70,7 +70,7 @@ class LyricsOverlay(QWidget):
         self.clear_layouts()
 
     def set_document(self, document: LyricDocument | None):
-        displayed = display_document(document, mode=display_mode(self.prefs))
+        displayed = display_document(document, mode=display_mode(self.prefs), hide_instrumental=self.prefs.hide_instrumental)
         same_text = bool(displayed and self.display_document and [(line.start_ms, line.text) for line in displayed.lines]
                          == [(line.start_ms, line.text) for line in self.display_document.lines])
         self.document = document
@@ -83,9 +83,8 @@ class LyricsOverlay(QWidget):
 
     def refresh_preferences(self):
         self.refresh_screen()
-        self.display_document = display_document(self.document, mode=display_mode(self.prefs))
-        if self.document:
-            self.timeline = self._timeline(self.display_document)
+        self.display_document = display_document(self.document, mode=display_mode(self.prefs), hide_instrumental=self.prefs.hide_instrumental)
+        self.timeline = self._timeline(self.display_document) if self.display_document else None
         self.clear_layouts()
 
     def _timeline(self, document):
