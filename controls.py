@@ -4,6 +4,7 @@ import sys
 if sys.platform == "win32":
     from ctypes import wintypes
 import logging
+import json
 from PySide6.QtCore import QPointF, QRect, QRectF, QSize, Qt, QTimer, QElapsedTimer, QSignalBlocker
 from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPalette, QPen, QPixmap, QPolygonF
 from PySide6.QtWidgets import (
@@ -263,7 +264,8 @@ class FontPreview(QWidget):
         painter.drawRoundedRect(QRectF(self.rect()).adjusted(.5, .5, -.5, -.5), 8, 8)
         pixels = min(28, self.prefs.font_size)
         key = (self.width(), pixels, self.prefs.font_family, self.prefs.color, self.prefs.text_style, self.prefs.glow_variant,
-               self.devicePixelRatioF(), self.prefs.animation_style, self.prefs.jump, self.prefs.fall_distance, self.prefs.singing_sync)
+               self.devicePixelRatioF(), self.prefs.animation_style, self.prefs.jump, self.prefs.fall_distance, self.prefs.singing_sync,
+               self.prefs.gradient_colors, self.prefs.gradient_direction)
         if key != self._key:
             glyphs, _, _ = _glyph_layout(EFFECT_PREVIEW_TEXT, pixels,
                                          max(1, self.width() - 48), self.prefs.font_family)
@@ -675,14 +677,33 @@ class ControlPanel(QWidget):
         self.text_style = QComboBox()
         self.text_style.addItem("白芯发光", "glow")
         self.text_style.addItem("经典纯色", "solid")
+        self.text_style.addItem("渐变字芯", "gradient_fill")
         self.text_style.setCurrentIndex(self.text_style.findData(self.prefs.text_style))
         self.text_style.currentIndexChanged.connect(lambda _: self._set_preference("text_style", self.text_style.currentData()))
         self.glow_variant = QComboBox()
         self.glow_variant.addItem("标准白芯", "standard")
         self.glow_variant.addItem("卡门的声音", "carmen")
+        self.glow_variant.addItem("渐变描边", "gradient")
         self.glow_variant.setCurrentIndex(self.glow_variant.findData(self.prefs.glow_variant))
         self.glow_variant.setAccessibleName("白芯发光风格")
         self.glow_variant.currentIndexChanged.connect(lambda _: self._set_preference("glow_variant", self.glow_variant.currentData()))
+        self.gradient_field = QWidget()
+        gradient_row = QHBoxLayout(self.gradient_field)
+        gradient_row.setContentsMargins(0, 0, 0, 0)
+        self.gradient_buttons = []
+        for index, title in enumerate(("起始色", "中间色", "结束色")):
+            button = QPushButton(title)
+            button.setAccessibleName(title)
+            button.clicked.connect(lambda _, i=index: self.choose_gradient_color(i))
+            self.gradient_buttons.append(button)
+            gradient_row.addWidget(button)
+        self.gradient_middle = QCheckBox("中间色")
+        self.gradient_middle.toggled.connect(self._gradient_middle_changed)
+        gradient_row.addWidget(self.gradient_middle)
+        self.gradient_direction = QComboBox()
+        for title, value in (("从左到右", "horizontal"), ("从上到下", "vertical"), ("左上到右下", "diagonal")):
+            self.gradient_direction.addItem(title, value)
+        self.gradient_direction.currentIndexChanged.connect(lambda _: self._set_preference("gradient_direction", self.gradient_direction.currentData()))
         self.glow_slider = QSlider(Qt.Orientation.Horizontal)
         self.glow_slider.setRange(0, 100)
         self.glow_slider.setValue(self.prefs.glow_strength)
@@ -729,6 +750,7 @@ class ControlPanel(QWidget):
         for title, fields in (
             ("显示与文字", (("显示区域", self.region), ("歌词字体", font_field), ("文字样式", self.text_style),
                           ("发光风格", self.glow_variant),
+                          ("渐变颜色", self.gradient_field), ("渐变方向", self.gradient_direction),
                           ("文字大小", self.spins["font_size"]),
                           (self.color_label, self.color_button), ("发光强度", self.glow_field),
                           ("歌词透明度", self.spins["opacity"]), ("歌词语言", self.translation_checkbox))),
@@ -1044,12 +1066,26 @@ class ControlPanel(QWidget):
             self.font_preview.replay()
 
     def _update_effect_controls(self):
-        glowing = self.prefs.text_style == "glow"
-        carmen = glowing and self.prefs.glow_variant == "carmen"
-        self.glow_variant.setEnabled(glowing)
-        self.color_button.setEnabled(not carmen)
+        glowing = self.prefs.text_style != "solid"
+        carmen = self.prefs.text_style == "glow" and self.prefs.glow_variant == "carmen"
+        gradient = self.prefs.text_style == "gradient_fill" or (self.prefs.text_style == "glow" and self.prefs.glow_variant == "gradient")
+        self.glow_variant.setEnabled(self.prefs.text_style == "glow")
+        self.color_button.setEnabled(not carmen and not (self.prefs.text_style == "glow" and gradient))
+        self.gradient_field.setEnabled(gradient)
+        self.gradient_direction.setEnabled(gradient)
+        blocker = QSignalBlocker(self.gradient_direction)
+        self.gradient_direction.setCurrentIndex(self.gradient_direction.findData(self.prefs.gradient_direction))
+        del blocker
+        colors = json.loads(self.prefs.gradient_colors)
+        blocker = QSignalBlocker(self.gradient_middle)
+        self.gradient_middle.setChecked(len(colors) == 3)
+        del blocker
+        self.gradient_buttons[1].setEnabled(len(colors) == 3)
+        for button, color in zip(self.gradient_buttons, (colors[0], colors[1] if len(colors) == 3 else "#b6a0ee", colors[-1])):
+            button.setStyleSheet(f"border:2px solid {color};")
         self.white_hint.setText("卡门的声音：固定暖白字芯与琥珀金光晕，发光强度可调。" if carmen else
-                                "字芯固定白色，描边与光晕使用所选颜色。")
+                                "字芯使用渐变，描边与光晕使用单色。" if self.prefs.text_style == "gradient_fill" else
+                                "字芯固定白色，描边与光晕使用渐变。" if gradient else "字芯固定白色，描边与光晕使用所选颜色。")
         self.color_label.setText("描边颜色" if glowing else "文字颜色")
         self.color_button.setToolTip("选择描边和光晕颜色" if glowing else "选择文字填充颜色")
         self.white_hint.setVisible(glowing)
@@ -1058,6 +1094,19 @@ class ControlPanel(QWidget):
         self.parameter_fields["shake_frequency"].setEnabled(self.prefs.animation_style.endswith("_shake"))
         self.parameter_fields["fall_distance"].setEnabled(self.prefs.animation_style.startswith("fall_"))
         self._refresh_word_status()
+
+    def _gradient_middle_changed(self, checked):
+        colors = json.loads(self.prefs.gradient_colors)
+        values = [colors[0], "#b6a0ee", colors[-1]] if checked else [colors[0], colors[-1]]
+        self._set_preference("gradient_colors", json.dumps(values))
+
+    def choose_gradient_color(self, index):
+        colors = json.loads(self.prefs.gradient_colors)
+        slot = len(colors) - 1 if index == 2 else index
+        color = QColorDialog.getColor(QColor(colors[slot]), self, "选择渐变颜色")
+        if color.isValid():
+            colors[slot] = color.name()
+            self._set_preference("gradient_colors", json.dumps(colors))
 
     def _refresh_word_status(self):
         waiting = not getattr(self.player, "lyrics_received", False) if self.external else self.player.path is None

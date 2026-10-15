@@ -5,14 +5,15 @@ import math
 import numpy as np
 from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QImage, QPainter, QPen
-from glyph_motion import motion_bounds
+from glyph_motion import motion_bounds, GlyphState
+import gradients
 
 
 def effect_geometry(pixels, style, variant="standard"):
     """Visible outside stroke and finite glow support, in logical pixels."""
     if style == "glow" and variant == "carmen":
         return (.65 * pixels / 32, 12 * pixels / 32)
-    return (1.2 * pixels / 32, 8 * pixels / 32) if style == "glow" else (1.2, 0)
+    return (1.2 * pixels / 32, 8 * pixels / 32) if style != "solid" else (1.2, 0)
 
 
 def effect_palette(prefs):
@@ -60,6 +61,7 @@ class LineSurface:
     pixels: int
     materials: object = None
     material_key: object = None
+    gradient_bounds: object = None
 
 
 class TextEffects:
@@ -121,8 +123,16 @@ class TextEffects:
         margin = stroke + radius + 3 / dpr
         bounds = QRectF()
         assets = []
+        gradient_bounds = QRectF()
         for glyph in glyphs:
-            asset = self.glow(glyph, pixels, prefs.font_family, color, dpr, prefs.glow_variant) if prefs.text_style == "glow" else None
+            if not glyph.path.isEmpty():
+                gradient_bounds = gradient_bounds.united(glyph.path.boundingRect().translated(glyph.x, glyph.baseline))
+        for glyph in glyphs:
+            gradient_outline = prefs.text_style == "glow" and prefs.glow_variant == "gradient"
+            asset = self.glow(glyph, pixels, prefs.font_family, QColor("white") if gradient_outline else color,
+                              dpr, prefs.glow_variant) if prefs.text_style != "solid" else None
+            if asset and gradient_outline:
+                asset = (gradients.tint(asset[0], asset[1], glyph, gradient_bounds, prefs), asset[1])
             if not glyph.path.isEmpty():
                 ink = glyph.path.boundingRect().adjusted(-margin, -margin, margin, margin)
                 if asset:
@@ -133,7 +143,8 @@ class TextEffects:
             assets.append(asset)
         bounds = bounds.toAlignedRect()
         surface = LineSurface(glyphs, transparent_image(bounds, dpr), QPointF(bounds.x(), bounds.y()), assets, pixels)
-        if prefs.animation_style != "classic" or prefs.singing_sync:
+        surface.gradient_bounds = gradient_bounds
+        if prefs.animation_style != "classic" or prefs.singing_sync or gradients.enabled(prefs):
             self._materials(surface, prefs)
         return surface
 
@@ -143,7 +154,8 @@ class TextEffects:
         Disjoint halo/body pixels allow all halos to precede the white cores.
         A body knockout excludes neighbouring halos underneath fading white ink.
         """
-        key = (prefs.text_style, prefs.color, prefs.glow_strength, prefs.singing_sync, prefs.glow_variant)
+        key = (prefs.text_style, prefs.color, prefs.glow_strength, prefs.singing_sync, prefs.glow_variant,
+               prefs.gradient_colors, prefs.gradient_direction)
         if surface.material_key == key:
             return surface.materials
         materials = []
@@ -169,13 +181,19 @@ class TextEffects:
                 painter.setOpacity(prefs.glow_strength / 100)
                 painter.drawImage(origin, glow[0])
             painter.setOpacity(1)
-            painter.setPen(QPen(outline if prefs.text_style == "glow" else QColor(10, 22, 26, 210),
+            outline_brush = gradients.brush(surface.gradient_bounds, glyph, prefs) if prefs.text_style == "glow" and prefs.glow_variant == "gradient" else outline
+            painter.setPen(QPen(outline_brush if prefs.text_style != "solid" else QColor(10, 22, 26, 210),
                                 stroke * 2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
-            painter.setBrush(Qt.BrushStyle.NoBrush if prefs.text_style == "glow" else QColor(prefs.color))
+            painter.setBrush(Qt.BrushStyle.NoBrush if prefs.text_style != "solid" else QColor(prefs.color))
+            if prefs.text_style == "glow" and prefs.glow_variant == "gradient":
+                painter.save()
+                painter.translate(.75 * surface.pixels / 32, .75 * surface.pixels / 32)
+                painter.drawPath(glyph.path)
+                painter.restore()
             painter.drawPath(glyph.path)
-            if prefs.text_style == "glow":
+            if prefs.text_style != "solid":
                 painter.setPen(Qt.PenStyle.NoPen)
-                painter.setBrush(core)
+                painter.setBrush(gradients.brush(surface.gradient_bounds, glyph, prefs) if prefs.text_style == "gradient_fill" else core)
                 painter.drawPath(glyph.path)
             painter.end()
             painter = QPainter(mask)
@@ -184,6 +202,11 @@ class TextEffects:
             painter.setPen(QPen(Qt.GlobalColor.white, stroke * 2, Qt.PenStyle.SolidLine,
                                 Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
             painter.setBrush(Qt.GlobalColor.white)
+            if prefs.text_style == "glow" and prefs.glow_variant == "gradient":
+                painter.save()
+                painter.translate(.75 * surface.pixels / 32, .75 * surface.pixels / 32)
+                painter.drawPath(glyph.path)
+                painter.restore()
             painter.drawPath(glyph.path)
             painter.end()
             body_pixels = pixels_view(mask)[:, :, 3] > 0
@@ -223,7 +246,7 @@ class TextEffects:
 
         for index, state in enumerate(states):
             gain = 1
-            if prefs.singing_sync and prefs.text_style == "glow" and prefs.glow_strength:
+            if prefs.singing_sync and prefs.text_style != "solid" and prefs.glow_strength:
                 peak = min(100, prefs.glow_strength * 1.4)
                 gain = (prefs.glow_strength + (peak - prefs.glow_strength) * state.emphasis) / peak
             draw(index, 0, state.opacity * gain)
@@ -237,6 +260,10 @@ class TextEffects:
         return surface.image
 
     def render(self, surface, prefs, seconds=0, energy=0, moving=False, states=None):
+        if states is None and gradients.enabled(prefs):
+            states = [GlyphState(glyph.x, glyph.baseline - prefs.jump * energy *
+                                (0.6 + 0.4 * math.sin(seconds * 8 - glyph.index * .6)) if moving else glyph.baseline,
+                                scale=1 + .04 * energy if moving else 1) for glyph in surface.glyphs]
         if states is not None:
             return self._render_states(surface, prefs, states)
         surface.image.fill(Qt.GlobalColor.transparent)

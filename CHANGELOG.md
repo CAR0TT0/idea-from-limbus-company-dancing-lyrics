@@ -798,3 +798,9 @@
 - 本次新增协作规则和版本管理记录，应用功能未改动。
 - 现有功能和此前启动修复作为初始基线纳入版本管理；它们的已有验证见 [验证记录.md](验证记录.md)。
 - 虚拟环境、个人运行配置、打包产物和验证截图沿用 `.gitignore` 的忽略规则。
+
+## 2026-10-16：自定义渐变描边与渐变字芯
+
+- 修改 settings.py、controls.py、text_effects.py，新增 gradients.py 和 tests/test_gradient_effects.py：白芯渐变描边、渐变字芯，2～3 色及三个方向，预览与预设持久化；渐变锚定原布局，复用模糊缓存。
+- 全部自动测试 347 项通过（artifacts/gradient-tests.txt）；Windows 静音集成 75 项通过（artifacts/gradient-smoke/smoke-report.json）。新增像素验证覆盖方向、DPI、白芯、消失后的颜色稳定及预设重启。
+- 尚未重新打包；后续功能完成后统一打包。

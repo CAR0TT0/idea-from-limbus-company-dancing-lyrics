@@ -1,6 +1,7 @@
 from dataclasses import dataclass, asdict
 from pathlib import Path
 import sys
+import json
 from PySide6.QtCore import QSettings
 from PySide6.QtGui import QColor
 
@@ -39,6 +40,8 @@ class Preferences:
     text_style: str = "glow"
     glow_strength: int = 60
     glow_variant: str = "standard"
+    gradient_colors: str = '["#ff78bb","#68b6f5"]'
+    gradient_direction: str = "horizontal"
     animation_style: str = "classic"
     entry_speed: int = 100
     exit_speed: int = 100
@@ -87,10 +90,20 @@ def normalize_preferences(prefs):
         prefs.region = "edges"
     if prefs.motion not in ("audio", "wave"):
         prefs.motion = "audio"
-    if prefs.text_style not in ("glow", "solid"):
+    if prefs.text_style not in ("glow", "solid", "gradient_fill"):
         prefs.text_style = "glow"
-    if prefs.glow_variant not in ("standard", "carmen"):
+    if prefs.glow_variant not in ("standard", "carmen", "gradient"):
         prefs.glow_variant = "standard"
+    try:
+        colors = json.loads(prefs.gradient_colors)
+        if not isinstance(colors, list) or len(colors) not in (2, 3) or not all(
+                isinstance(color, str) and len(color) == 7 and color.startswith("#") and QColor(color).isValid() for color in colors):
+            raise ValueError()
+        prefs.gradient_colors = json.dumps([QColor(color).name() for color in colors], separators=(",", ":"))
+    except (ValueError, TypeError):
+        prefs.gradient_colors = '["#ff78bb","#68b6f5"]'
+    if prefs.gradient_direction not in ("horizontal", "vertical", "diagonal"):
+        prefs.gradient_direction = "horizontal"
     if prefs.animation_style not in ANIMATION_STYLES:
         prefs.animation_style = "classic"
     if prefs.theme not in ("light", "dark", "special"):
