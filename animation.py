@@ -33,6 +33,7 @@ class Glyph:
     text_end: int = 0
     pixels: int = 0
     language: int = 0
+    cell_width: float = 0
 
 
 @dataclass
@@ -100,7 +101,7 @@ def _glyph_layout(text: str, pixels: int, max_width: float, family: str = DEFAUL
             path = QPainterPath()
             if not char.isspace():
                 path.addText(QPointF(-advance / 2, 0), font, char)
-            glyphs.append(Glyph(path, x + advance / 2, baseline, index, text_start=start, text_end=end))
+            glyphs.append(Glyph(path, x + advance / 2, baseline, index, text_start=start, text_end=end, cell_width=advance))
             x += advance
             index += 1
     width = max(widths, default=0)

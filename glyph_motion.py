@@ -1,5 +1,5 @@
 """Stateless character choreography: the song position is the only animation clock."""
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import math
 from PySide6.QtCore import QRectF
 from PySide6.QtGui import QTransform
@@ -13,6 +13,7 @@ class GlyphState:
     scale: float = 1
     rotation: float = 0
     emphasis: float = 0
+    replacement: int = -1
 
 
 def smooth(value):
@@ -53,6 +54,23 @@ def word_emphasis(glyph, words, position):
     return weight
 
 
+def scramble_state(state, rank, count, item, position, prefs, seed, pixels):
+    if not prefs.scramble_exit or position < item.exit_start_ms:
+        return state
+    total = max(0, item.end_ms - item.exit_start_ms)
+    duration = total if count == 1 else min(160 * 100 / prefs.exit_speed, 2 * total / max(1, count))
+    phase = stagger(position, item.exit_start_ms, item.end_ms, rank, count, duration)
+    if phase <= 0:
+        return state
+    if phase >= 1:
+        return replace(state, opacity=0, emphasis=0, replacement=-1)
+    sample = math.floor((position - item.exit_start_ms) * 12 / 1000)
+    symbol = min(7, int((noise_value(seed, rank, 7, sample) + 1) * 4))
+    opacity = state.opacity * (1 - smooth((phase - .4) / .6))
+    return replace(state, x=state.x + noise_value(seed, rank, 8, sample) * pixels / 32,
+                   opacity=opacity, emphasis=0, replacement=symbol)
+
+
 def glyph_states(glyphs, prefs, item, position_ms, energy, pixels, seed=0, angle=0, moving=True):
     visible = [glyph for glyph in glyphs if not glyph.path.isEmpty()]
     count, rank = len(visible), 0
@@ -60,7 +78,7 @@ def glyph_states(glyphs, prefs, item, position_ms, energy, pixels, seed=0, angle
     ranks = {0: 0, 1: 0}
     seconds = position_ms / 1000
     amplitude = prefs.jump * (.35 + .65 * max(0., min(1., energy)))
-    falling = prefs.animation_style.startswith("fall_")
+    falling = prefs.animation_style.startswith("fall_") and not prefs.scramble_exit
     shaking = prefs.animation_style.endswith("_shake")
     radians = math.radians(angle)
     result = []
@@ -74,12 +92,14 @@ def glyph_states(glyphs, prefs, item, position_ms, energy, pixels, seed=0, angle
         if prefs.animation_style == "classic":
             dy = -prefs.jump * energy * (0.6 + 0.4 * math.sin(seconds * 8 - glyph.index * .6)) if moving else 0
             scale = (1 + .04 * energy if moving else 1) * (1 + .08 * emphasis)
-            result.append(GlyphState(glyph.x, glyph.baseline + dy, 1, scale, 0, emphasis))
+            entering = min(1, max(0, (position_ms - item.start_ms) / max(1, item.entry_end_ms-item.start_ms))) if prefs.scramble_exit else 1
+            state = GlyphState(glyph.x, glyph.baseline + dy, entering, scale, 0, emphasis)
+            result.append(scramble_state(state, rank, count, item, position_ms, prefs, seed + glyph.language * 100003, pixels))
             continue
         entering = stagger(position_ms, item.start_ms, item.entry_end_ms, rank, count, 140 * 100 / prefs.entry_speed)
         leaving = stagger(position_ms, item.exit_start_ms, item.end_ms, rank, count,
                           (350 if falling else 200) * 100 / prefs.exit_speed)
-        opacity = smooth(entering) * (1 - smooth(leaving))
+        opacity = smooth(entering) * (1 if prefs.scramble_exit else 1 - smooth(leaving))
         if shaking:
             dx = amplitude * .3 * noise(seed, rank, 0, seconds, prefs.shake_frequency)
             dy = amplitude * .5 * noise(seed, rank, 1, seconds, prefs.shake_frequency)
@@ -89,10 +109,11 @@ def glyph_states(glyphs, prefs, item, position_ms, energy, pixels, seed=0, angle
         distance = prefs.fall_distance * pixels / 32 * leaving ** 2 if falling else 0
         rotation = (8 if noise_value(seed, rank, 2, 0) >= 0 else -8) * leaving ** 2 if falling else 0
         # Convert screen-vertical fall to the tilted sentence's local coordinates.
-        result.append(GlyphState(glyph.x + dx + math.sin(radians) * distance,
+        state = GlyphState(glyph.x + dx + math.sin(radians) * distance,
                                  glyph.baseline + dy + math.cos(radians) * distance,
                                  opacity, 1 + .08 * emphasis if opacity > 0 else 1, rotation,
-                                 emphasis if opacity > 0 else 0))
+                                 emphasis if opacity > 0 else 0)
+        result.append(scramble_state(state, rank, count, item, position_ms, prefs, seed + glyph.language * 100003, pixels))
         rank += 1
     return result
 

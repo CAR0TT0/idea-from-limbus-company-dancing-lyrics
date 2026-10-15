@@ -79,7 +79,7 @@ class LyricsOverlay(QWidget):
     def _timeline(self, document):
         delay = self.prefs.delay_ms - getattr(self.player, "lyric_offset_ms", 0)
         return LyricTimeline(document, delay, self.prefs.animation_style,
-                             self.prefs.entry_speed, self.prefs.exit_speed)
+                             self.prefs.entry_speed, self.prefs.exit_speed, self.prefs.scramble_exit)
 
     def clear_layouts(self):
         self.layouts.clear()
@@ -165,7 +165,7 @@ class LyricsOverlay(QWidget):
             remaining = item.end_ms - position
             drift = (8 * (1 - min(1, remaining / (600 * 100 / self.prefs.exit_speed)))
                      - 5 * (1 - min(1, age / (300 * 100 / self.prefs.entry_speed))))
-            if self.prefs.animation_style != "classic":
+            if self.prefs.animation_style != "classic" or self.prefs.scramble_exit:
                 drift = 0
             painter.save()
             painter.setOpacity(item.opacity * self.prefs.opacity / 100)
@@ -177,7 +177,7 @@ class LyricsOverlay(QWidget):
                                                       self.devicePixelRatioF(), self.prefs.jump, layout.angle)
             states = (glyph_states(layout.glyphs, self.prefs, item, position, energy, layout.font_size,
                                    self.seed + item.index * 7919, layout.angle)
-                      if self.prefs.animation_style != "classic" or self.prefs.singing_sync or item.secondary_start >= 0 else None)
+                      if self.prefs.animation_style != "classic" or self.prefs.singing_sync or item.secondary_start >= 0 or self.prefs.scramble_exit else None)
             image = TEXT_EFFECTS.render(layout.surface, self.prefs, seconds, energy, moving=True, states=states)
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
             painter.drawImage(layout.surface.origin, image)

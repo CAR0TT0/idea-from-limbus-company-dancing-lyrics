@@ -43,6 +43,7 @@ class Preferences:
     gradient_colors: str = '["#ff78bb","#68b6f5"]'
     gradient_direction: str = "horizontal"
     animation_style: str = "classic"
+    scramble_exit: bool = False
     entry_speed: int = 100
     exit_speed: int = 100
     shake_frequency: int = 6

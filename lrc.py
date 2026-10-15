@@ -120,7 +120,7 @@ class ActiveLine:
 class LyricTimeline:
     """Position is authoritative: pause and seek need no event replay."""
     def __init__(self, document: LyricDocument, delay_ms: int = 0, animation_style: str = "classic",
-                 entry_speed: int = 100, exit_speed: int = 100):
+                 entry_speed: int = 100, exit_speed: int = 100, scramble_exit: bool = False):
         # A positive LRC offset advances timestamps; a positive UI delay postpones them.
         shift = delay_ms - document.offset_ms
         self.lines = [replace(line, start_ms=line.start_ms + shift,
@@ -128,6 +128,7 @@ class LyricTimeline:
                                           for word in line.words)) for line in document.lines]
         self.starts = [line.start_ms for line in self.lines]
         self.animation_style = animation_style
+        self.scramble_exit = scramble_exit
         self.entry_duration = 700 * 100 / entry_speed
         self.exit_duration = 600 * 100 / exit_speed
         self.classic_entry = 300 * 100 / entry_speed
@@ -139,7 +140,7 @@ class LyricTimeline:
         if duration > 0:
             boundary = min(boundary, duration)
         interval = max(0, boundary - line.start_ms)
-        entry_end = line.start_ms + min(self.entry_duration, interval * .35)
+        entry_end = line.start_ms + min(self.classic_entry if self.animation_style == "classic" else self.entry_duration, interval * .35)
         if following and following.text and boundary < (duration or float("inf")):
             next_boundary = (self.lines[index + 2].start_ms if index + 2 < len(self.lines)
                              else duration or following.start_ms + 6000)
@@ -159,7 +160,7 @@ class LyricTimeline:
             line = self.lines[i]
             if not line.text:
                 continue
-            if self.animation_style != "classic":
+            if self.animation_style != "classic" or self.scramble_exit:
                 item = self._animated_window(i, duration_ms)
                 if item.start_ms <= position_ms < item.end_ms and item.end_ms > item.start_ms:
                     active.append(item)

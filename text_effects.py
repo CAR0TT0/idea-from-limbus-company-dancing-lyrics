@@ -1,12 +1,13 @@
 """Shared, bounded glyph glow cache and reusable per-line compositing surfaces."""
 from collections import OrderedDict
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import math
 import numpy as np
 from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QImage, QPainter, QPen
 from glyph_motion import motion_bounds, GlyphState
 import gradients
+import scramble
 
 
 def effect_geometry(pixels, style, variant="standard"):
@@ -63,18 +64,30 @@ class LineSurface:
     material_key: object = None
     gradient_bounds: object = None
     gradient_regions: object = None
+    replacements: object = None
 
 
 class TextEffects:
     def __init__(self, limit_bytes=64 * 1024 * 1024):
         self.limit_bytes = limit_bytes
         self.cache = OrderedDict()
+        self.replacement_cache = OrderedDict()
         self.cache_bytes = 0
         self.hits = self.misses = 0
 
     def clear(self):
         self.cache.clear()
+        self.replacement_cache.clear()
         self.cache_bytes = 0
+
+    def _reserve(self, size):
+        while self.cache_bytes + size > self.limit_bytes and (self.cache or self.replacement_cache):
+            if self.cache:
+                previous, _ = self.cache.popitem(last=False)[1]
+                self.cache_bytes -= previous.sizeInBytes()
+            else:
+                previous = self.replacement_cache.popitem(last=False)[1]
+                self.cache_bytes -= previous[0].sizeInBytes() + previous[1].sizeInBytes()
 
     def glow(self, glyph, pixels, family, color, dpr, variant="standard"):
         path = glyph.path
@@ -111,14 +124,12 @@ class TextEffects:
         asset = (image, QPointF(bounds.x(), bounds.y()))
         size = image.sizeInBytes()
         if size <= self.limit_bytes:
-            while self.cache and self.cache_bytes + size > self.limit_bytes:
-                previous, _ = self.cache.popitem(last=False)[1]
-                self.cache_bytes -= previous.sizeInBytes()
+            self._reserve(size)
             self.cache[key] = asset
             self.cache_bytes += size
         return asset
 
-    def prepare(self, glyphs, pixels, prefs, dpr, jump_limit=0, angle=0):
+    def prepare(self, glyphs, pixels, prefs, dpr, jump_limit=0, angle=0, _regions=None, _replacements=True):
         _, _, color = effect_palette(prefs)
         stroke, radius = effect_geometry(pixels, prefs.text_style, prefs.glow_variant)
         margin = stroke + radius + 3 / dpr
@@ -131,6 +142,8 @@ class TextEffects:
                 ink = glyph.path.boundingRect().translated(glyph.x, glyph.baseline)
                 gradient_bounds = gradient_bounds.united(ink)
                 gradient_regions[glyph.language] = gradient_regions[glyph.language].united(ink)
+        if _regions is not None:
+            gradient_regions = _regions
         for glyph in glyphs:
             glyph_pixels = glyph.pixels or pixels
             gradient_outline = prefs.text_style == "glow" and prefs.glow_variant == "gradient"
@@ -150,8 +163,40 @@ class TextEffects:
         surface = LineSurface(glyphs, transparent_image(bounds, dpr), QPointF(bounds.x(), bounds.y()), assets, pixels)
         surface.gradient_bounds = gradient_bounds
         surface.gradient_regions = gradient_regions
-        if prefs.animation_style != "classic" or prefs.singing_sync or gradients.enabled(prefs):
+        if prefs.animation_style != "classic" or prefs.singing_sync or gradients.enabled(prefs) or prefs.scramble_exit:
             self._materials(surface, prefs)
+        if prefs.scramble_exit and _replacements:
+            variants = []
+            for glyph in glyphs:
+                if glyph.path.isEmpty():
+                    variants.append(None)
+                    continue
+                center = glyph.path.boundingRect().center()
+                paths = scramble.paths(prefs.font_family, glyph.pixels or pixels, glyph.cell_width or glyph.path.boundingRect().width(), center.x(), center.y())
+                items = []
+                region = gradient_regions[glyph.language]
+                for index, path in enumerate(paths):
+                    key = (prefs.font_family, glyph.pixels or pixels, glyph.cell_width, center.x(), center.y(), glyph.x, glyph.baseline,
+                           dpr, prefs.text_style, prefs.glow_variant, prefs.color, prefs.gradient_colors, prefs.gradient_direction,
+                           prefs.glow_strength, prefs.singing_sync, region.getRect(), index)
+                    material = self.replacement_cache.get(key)
+                    if material is None:
+                        variant = replace(glyph, path=path, effect_key=None)
+                        prepared = self.prepare([variant], pixels, prefs, dpr, _regions=gradient_regions, _replacements=False)
+                        material = self._materials(prepared, prefs)[0]
+                        size = material[0].sizeInBytes() + material[1].sizeInBytes()
+                        if size <= self.limit_bytes:
+                            self._reserve(size)
+                            self.replacement_cache[key] = material
+                            self.cache_bytes += size
+                    else:
+                        self.replacement_cache.move_to_end(key)
+                    items.append(material)
+                    bounds = bounds.united(QRectF(QPointF(material[2]) + QPointF(glyph.x, glyph.baseline), material[0].deviceIndependentSize()).toAlignedRect())
+                variants.append(items)
+            surface.replacements = variants
+            surface.origin = QPointF(bounds.x(), bounds.y())
+            surface.image = transparent_image(bounds, dpr)
         return surface
 
     def _materials(self, surface, prefs):
@@ -243,6 +288,8 @@ class TextEffects:
 
         def draw(index, layer, opacity):
             material, state = materials[index], states[index]
+            if state.replacement >= 0 and surface.replacements and surface.replacements[index]:
+                material = surface.replacements[index][state.replacement]
             if material is None or state.opacity <= 0:
                 return
             painter.save()

@@ -840,3 +840,17 @@
 ### 影响与限制
 
 - 页面和下拉列表仍可滚动浏览；保留点击、数字输入、拖动及键盘调整。后续统一打包。
+
+## 2026-10-16：独立乱码退场
+
+### 改动
+
+- 修改 settings.py、lrc.py、animation.py、glyph_motion.py、text_effects.py、overlay.py、controls.py；新增 scramble.py 与 tests/test_scramble_exit.py。按歌曲时间从左到右替换符号并消散，保留入场与停留律动，复用退场速度；双语分组各自顺序，替代符号预计算并与光晕共用 64MiB 缓存预算。
+
+### 测试与验证
+
+- 全部自动测试 356 项通过（artifacts/scramble-tests.txt）；Windows 静音集成通过（artifacts/scramble-smoke/smoke-report.json）。新增验证覆盖五种原动画组合、确定性、短句／密集／空白边界、渐变与双语替代材质、缓存复用与图像透明边缘。
+
+### 影响与限制
+
+- 开关默认关闭；开启后替代原退场，不叠加跌落或整句渐隐。缺字时使用字体支持的符号；真实暖缓存性能与录屏将在最终专项验证中记录。

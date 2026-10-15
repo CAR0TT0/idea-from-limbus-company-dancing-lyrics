@@ -229,7 +229,7 @@ class FontPreview(QWidget):
         self.dark = True
         self._key = None
         self._surface = None
-        self._running = prefs.animation_style != "classic" or prefs.singing_sync
+        self._running = prefs.animation_style != "classic" or prefs.singing_sync or prefs.scramble_exit
         self._position = 0
         self._elapsed = QElapsedTimer()
         self.timer = QTimer(self)
@@ -251,7 +251,7 @@ class FontPreview(QWidget):
         return (self._position + (self._elapsed.elapsed() if self.timer.isActive() else 0)) % (self._preview_item().end_ms + 400)
 
     def _preview_item(self):
-        end = 3800 if self.prefs.animation_style == "classic" else 3200 + min(600 * 100 / self.prefs.exit_speed, 4400 * .45)
+        end = 3800 if self.prefs.animation_style == "classic" and not self.prefs.scramble_exit else 3200 + min(600 * 100 / self.prefs.exit_speed, 4400 * .45)
         units = [index for index, char in enumerate(EFFECT_PREVIEW_TEXT) if char.isalnum()]
         words = tuple(TimedWord(round(800 + 2200 * order / len(units)),
                                 round(800 + 2200 * (order + 1) / len(units)), index, index + 1)
@@ -266,7 +266,7 @@ class FontPreview(QWidget):
             line = display_document(LyricDocument([LyricLine(0, text, words, EFFECT_PREVIEW_TEXT)], []),
                                     mode=display_mode(self.prefs)).lines[0]
         return ActiveLine(0, line.text, 0, end, 1,
-                          min(700 * 100 / self.prefs.entry_speed, 3200 * .35), 3200, line.words, line.secondary_start)
+                          min((300 if self.prefs.animation_style == "classic" else 700) * 100 / self.prefs.entry_speed, 3200 * .35), 3200, line.words, line.secondary_start)
 
     def _stop_preview(self):
         self._position = self._preview_position()
@@ -298,7 +298,7 @@ class FontPreview(QWidget):
         pixels = min(28, self.prefs.font_size)
         key = (self.width(), pixels, self.prefs.font_family, self.prefs.color, self.prefs.text_style, self.prefs.glow_variant,
                self.devicePixelRatioF(), self.prefs.animation_style, self.prefs.jump, self.prefs.fall_distance, self.prefs.singing_sync,
-               self.prefs.gradient_colors, self.prefs.gradient_direction, display_mode(self.prefs))
+               self.prefs.gradient_colors, self.prefs.gradient_direction, display_mode(self.prefs), self.prefs.scramble_exit)
         if key != self._key:
             item = self._preview_item()
             glyphs, _, _ = _glyph_layout(item.text, pixels,
@@ -308,7 +308,7 @@ class FontPreview(QWidget):
         position = self._preview_position()
         states = (glyph_states(self._surface.glyphs, self.prefs,
                               self._preview_item(), position, .5, pixels, 730)
-                  if self.prefs.animation_style != "classic" or self.prefs.singing_sync or self._preview_item().secondary_start >= 0 else None)
+                  if self.prefs.animation_style != "classic" or self.prefs.singing_sync or self._preview_item().secondary_start >= 0 or self.prefs.scramble_exit else None)
         image = TEXT_EFFECTS.render(self._surface, self.prefs, states=states)
         width = 2 * max(abs(self._surface.origin.x()), abs(self._surface.origin.x() + image.width() / image.devicePixelRatio()))
         height = 2 * max(abs(self._surface.origin.y()), abs(self._surface.origin.y() + image.height() / image.devicePixelRatio()))
@@ -317,7 +317,7 @@ class FontPreview(QWidget):
         painter.scale(scale, scale)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         opacity = self.prefs.opacity / 100
-        if self._running and self.prefs.animation_style == "classic":
+        if self._running and self.prefs.animation_style == "classic" and not self.prefs.scramble_exit:
             opacity *= max(0, min(1, position / min(300 * 100 / self.prefs.entry_speed, 1900),
                                  (3800 - position) / min(600 * 100 / self.prefs.exit_speed, 1900)))
         painter.setOpacity(opacity)
@@ -664,6 +664,9 @@ class ControlPanel(QWidget):
         self.animation_combo.setCurrentIndex(self.animation_combo.findData(self.prefs.animation_style))
         self.animation_combo.setAccessibleName("歌词动画")
         self.animation_combo.currentIndexChanged.connect(lambda _: self._set_preference("animation_style", self.animation_combo.currentData()))
+        self.scramble_checkbox = QCheckBox("乱码退场 · 替代原退场效果")
+        self.scramble_checkbox.setChecked(self.prefs.scramble_exit)
+        self.scramble_checkbox.toggled.connect(lambda value: self._set_preference("scramble_exit", value))
         self.singing_checkbox = QCheckBox("开启逐字演唱强调")
         self.singing_checkbox.setChecked(self.prefs.singing_sync)
         self.singing_checkbox.setAccessibleName("逐字演唱同步")
@@ -793,6 +796,7 @@ class ControlPanel(QWidget):
                           (self.color_label, self.color_button), ("发光强度", self.glow_field),
                           ("歌词透明度", self.spins["opacity"]), ("歌词语言", self.translation_checkbox))),
             ("律动与同步", (("歌词动画", self.animation_combo),
+                          ("乱码退场", self.scramble_checkbox),
                           ("入场速度", self.parameter_fields["entry_speed"]), ("退场速度", self.parameter_fields["exit_speed"]),
                           ("抖动频率", self.parameter_fields["shake_frequency"]), ("跌落距离（32px 字号）", self.parameter_fields["fall_distance"]),
                           ("预览背景", self.preview_background), ("效果预览", self.font_preview), ("动画预览", self.replay_button),
@@ -1104,7 +1108,7 @@ class ControlPanel(QWidget):
         self.overlay.refresh_preferences()
         self._update_effect_controls()
         self.font_preview.update()
-        if key in ("animation_style", "entry_speed", "exit_speed", "shake_frequency", "fall_distance", "singing_sync", "lyric_display_mode"):
+        if key in ("animation_style", "entry_speed", "exit_speed", "shake_frequency", "fall_distance", "singing_sync", "lyric_display_mode", "scramble_exit"):
             self.font_preview.replay()
 
     def _update_effect_controls(self):
@@ -1134,7 +1138,7 @@ class ControlPanel(QWidget):
         self.glow_slider.setEnabled(glowing)
         self.glow_value.setText(f"{self.prefs.glow_strength}%")
         self.parameter_fields["shake_frequency"].setEnabled(self.prefs.animation_style.endswith("_shake"))
-        self.parameter_fields["fall_distance"].setEnabled(self.prefs.animation_style.startswith("fall_"))
+        self.parameter_fields["fall_distance"].setEnabled(self.prefs.animation_style.startswith("fall_") and not self.prefs.scramble_exit)
         self._refresh_word_status()
 
     def _gradient_middle_changed(self, checked):
@@ -1176,7 +1180,7 @@ class ControlPanel(QWidget):
 
     def _sync_effect_widgets(self):
         widgets = [self.animation_combo, self.text_style, self.glow_variant, self.motion, self.font_combo, self.glow_slider,
-                   self.singing_checkbox, self.translation_checkbox, self.theme_combo,
+                   self.singing_checkbox, self.translation_checkbox, self.theme_combo, self.scramble_checkbox,
                    *self.spins.values(), *self.parameter_sliders.values()]
         blockers = [QSignalBlocker(widget) for widget in widgets]
         for widget, key in ((self.animation_combo, "animation_style"), (self.text_style, "text_style"),
@@ -1188,6 +1192,7 @@ class ControlPanel(QWidget):
             slider.setValue(getattr(self.prefs, key))
         self.glow_slider.setValue(self.prefs.glow_strength)
         self.singing_checkbox.setChecked(self.prefs.singing_sync)
+        self.scramble_checkbox.setChecked(self.prefs.scramble_exit)
         self.language_combo.setCurrentIndex(self.language_combo.findData(display_mode(self.prefs)))
         self.theme_combo.setCurrentIndex(self.theme_combo.findData(self.prefs.theme))
         if self.styleSheet() != theme_stylesheet(self.prefs.theme):
