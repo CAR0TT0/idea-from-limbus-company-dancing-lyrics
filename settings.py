@@ -27,6 +27,7 @@ def resource_path(name: str) -> Path:
 
 @dataclass
 class Preferences:
+    kugou_cache_directory: str = ""
     font_family: str = DEFAULT_FONT_FAMILY
     font_size: int = 32
     color: str = "#a9f4dc"
@@ -120,6 +121,9 @@ def normalize_preferences(prefs):
         prefs.color = "#a9f4dc"
     prefs.font_family = prefs.font_family.strip()
     prefs.qq_cache_directory = prefs.qq_cache_directory.strip()
+    prefs.kugou_cache_directory = prefs.kugou_cache_directory.strip()
+    if len(prefs.kugou_cache_directory) > 4096 or any(c in prefs.kugou_cache_directory for c in "\n\r\x00"):
+        prefs.kugou_cache_directory = ""
     if len(prefs.qq_cache_directory)>4096 or any(c in prefs.qq_cache_directory for c in "\n\r\x00"):
         prefs.qq_cache_directory = ""
     if not prefs.font_family or len(prefs.font_family) > 256 or any(c in prefs.font_family for c in "\n\r\x00"):

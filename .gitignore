@@ -4,6 +4,7 @@ __pycache__/
 .state/
 build/
 dist/
+dist-kugou/
 artifacts/
 *.spec
 !CityEchoes.spec
