@@ -14,6 +14,7 @@ from PySide6.QtCore import QProcess, QTimer
 from netease import NeteasePlayer
 from kugou_lyrics import LyricResult, load_song_lyrics
 from kugou_reader import is_kugou
+from kugou_clock import PlaybackClock
 from settings import resource_path
 
 
@@ -68,6 +69,9 @@ class KugouPlayer(NeteasePlayer):
         self.compatibility_status = "自动检测系统媒体接口及界面兼容通道，无客户端版本号限制。"
         self.lyric_status = "等待酷狗歌词"
         self._snapshot = None
+        self._timeline_clock = PlaybackClock()
+        self._missing_since = None
+        self._duration_candidate = None
         self._generation = 0
         self._rate = 1.0
         self._closed = False
@@ -98,11 +102,7 @@ class KugouPlayer(NeteasePlayer):
             self._start_helper()
 
     def position(self):
-        if not self.duration:
-            return 0
-        limit = 500 if self._snapshot and self._snapshot.mode in ("ocr", "hybrid") else 1500
-        elapsed = min(limit, max(0, (self._clock() - self._at) * 1000)) * self._rate if self.playing else 0
-        return min(self.duration, self._anchor + elapsed)
+        return self._timeline_clock.position(self._clock())
 
     def _start_helper(self):
         if self._closed or self.process.state() != QProcess.ProcessState.NotRunning:
@@ -135,15 +135,44 @@ class KugouPlayer(NeteasePlayer):
                 if not isinstance(message, str) or len(message) > 2048:
                     raise ValueError("酷狗诊断信息无效")
                 if snapshot is None:
-                    self.disconnect(message or "等待酷狗播放信息")
+                    self._handle_missing(message or "等待酷狗播放信息", packet.get("recoverable") is True)
                 else:
                     self.apply_snapshot(snapshot, message)
             except (ValueError, TypeError, UnicodeError) as error:
-                self.disconnect(str(error))
+                self._handle_missing(str(error), True)
+
+    def _handle_missing(self, message, recoverable):
+        if recoverable and self.connected:
+            now = self._clock()
+            if self._missing_since is None:
+                self._missing_since = now
+            if now - self._missing_since < 2:
+                self.compatibility_status = message
+                self.changed.emit()
+                return
+        self.disconnect(message)
 
     def apply_snapshot(self, snapshot, message=""):
+        now = self._clock()
+        coarse = snapshot.mode in ("ocr", "hybrid")
+        if (coarse and self._snapshot is not None
+                and (snapshot.title, snapshot.artist, snapshot.album) ==
+                    (self.title, self.artist, self._snapshot.album)
+                and snapshot.duration_ms != self.duration):
+            previous = self._duration_candidate
+            self._duration_candidate = (snapshot.duration_ms, now)
+            if previous is None or previous[0] != snapshot.duration_ms or now - previous[1] > 2:
+                return
+        self._duration_candidate = None
         switched = snapshot.key != self.song_id
-        jumped = switched or abs(snapshot.position_ms - self.position()) > 1500
+        accepted, jumped = self._timeline_clock.observe(snapshot.position_ms, now, snapshot.duration_ms,
+                                                        snapshot.playing and self.enabled, snapshot.rate,
+                                                        coarse, reset=switched)
+        if not accepted:
+            self.playing = snapshot.playing and self.enabled
+            self.changed.emit()
+            return
+        self._missing_since = None
         if switched:
             self._cancel.set()
             self._generation += 1
@@ -155,7 +184,7 @@ class KugouPlayer(NeteasePlayer):
         self._snapshot = snapshot
         self.song_id, self.title, self.artist = snapshot.key, snapshot.title, snapshot.artist
         self.duration = snapshot.duration_ms
-        self._anchor, self._at, self._rate = snapshot.position_ms, self._clock(), snapshot.rate
+        self._anchor, self._at, self._rate = self._timeline_clock.anchor, now, snapshot.rate
         self.playing, self.connected = snapshot.playing and self.enabled, True
         self.ended = self._anchor >= self.duration
         self.status = "已连接酷狗音乐 · 播放操作请在酷狗中进行。"
@@ -208,6 +237,8 @@ class KugouPlayer(NeteasePlayer):
     def _poll(self):
         if self._closed:
             return
+        if self._missing_since is not None and self._clock() - self._missing_since >= 2:
+            self.disconnect("酷狗进度暂不可读，正在等待恢复。")
         if self._future is not None and self._future.done():
             future, key, generation = self._future, self._future_key, self._future_generation
             self._future = None
@@ -242,6 +273,9 @@ class KugouPlayer(NeteasePlayer):
             self.document_changed.emit(None)
             self.discontinuity.emit()
         self.playing = self.connected = False
+        self._timeline_clock = PlaybackClock()
+        self._missing_since = None
+        self._duration_candidate = None
         self.status = self.compatibility_status = message
         self.changed.emit()
 

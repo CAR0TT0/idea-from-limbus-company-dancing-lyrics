@@ -244,9 +244,12 @@ async def reader(once=False):
                             snapshot[key] = media[key]
                         snapshot["mode"] = "hybrid"
                         message = "兼容模式 · 系统歌曲与播放状态 + 界面进度（约 1 秒精度，需还原酷狗主窗口）。"
-            print(json.dumps(dict(snapshot=snapshot, message=message), ensure_ascii=False), flush=True)
+            recoverable = snapshot is None and message in (
+                "界面兼容模式：等待播放栏显示可识别的歌名和进度。", "正在切歌，等待歌曲信息稳定。")
+            print(json.dumps(dict(snapshot=snapshot, message=message, recoverable=recoverable), ensure_ascii=False), flush=True)
         except Exception as error:
-            print(json.dumps(dict(snapshot=None, message="读取暂不可用，将自动重试。", error=type(error).__name__), ensure_ascii=False), flush=True)
+            print(json.dumps(dict(snapshot=None, message="读取暂不可用，将自动重试。", error=type(error).__name__,
+                                  recoverable=True), ensure_ascii=False), flush=True)
             manager = None
         if once:
             break

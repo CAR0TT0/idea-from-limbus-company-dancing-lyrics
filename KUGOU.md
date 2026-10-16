@@ -10,4 +10,6 @@
 
 设置放在 `%LOCALAPPDATA%\DancingLyrics-Kugou\.state`。快捷方式只写当前用户桌面与开始菜单；自动联动由用户在设置中选择，关闭后移除本程序的登录项。
 
+`0.8.0-beta.1-kugou.2` 修复整秒进度重置动画导致的切句闪动：`kugou_clock.py` 使用连续走时与区间校准，普通同步不回拨时钟；异常跳转需连续确认，短暂 OCR 漏读不清空歌词，单次总时长识别错误不重载歌曲。实际断连、切歌与确认的拖动仍重建布局。此处理改善动画连续性，不增加界面进度的实际测量精度。
+
 开发验证：`python -X utf8 -m unittest discover -s tests -q`；`python main.py --smoke --report-dir artifacts/kugou-engine`；`python main.py --kugou --kugou-smoke --report-dir artifacts/kugou-live`。最后一项只接受真实酷狗数据，未观察到的暂停、拖动、切歌和最小化行为不能据此宣称通过。

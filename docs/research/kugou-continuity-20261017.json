@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-17",
+  "version": "0.8.0-beta.1-kugou.2",
+  "unitTestsRun": 399,
+  "unitTestsSkipped": 1,
+  "regressionTestsAdded": 12,
+  "sourceEngineChecksPassed": 75,
+  "packagedEnginePassed": true,
+  "packagedEngineChecks": 75,
+  "chinesePathWithoutDeveloperPath": true,
+  "packagedLivePassed": true,
+  "packagedLiveChecks": {
+    "connected": true,
+    "realLyricsReceived": true,
+    "advancing": true,
+    "effectsKeepTransport": true,
+    "continuousClockNeverRewinds": true,
+    "continuousClockNoPacketJumps": true
+  },
+  "packagedSteadyPairCount": 2778,
+  "sourceLiveSteadyPairCount": 2795,
+  "syntheticReplay": {
+    "synthetic": true,
+    "frames": 480,
+    "fps": 60,
+    "observationEveryFrames": 25,
+    "minFrameAdvanceMs": 14.382716,
+    "maxFrameAdvanceMs": 16.666667,
+    "secondSentenceEntries": 1,
+    "oldMinFrameAdvanceMs": -400,
+    "oldSecondSentenceEntries": 2
+  },
+  "actualMusicCommandsSent": 0,
+  "precisionImproved": false,
+  "minimizedWindowLimitationUnchanged": true
+}
