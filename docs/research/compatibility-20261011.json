@@ -1,0 +1,224 @@
+{
+  "app_version": "0.7.0-beta.6",
+  "scope": "compatibility_policy_and_experimental_install",
+  "automatic_tests": {
+    "count": 330,
+    "seconds": 15.675,
+    "passed": true
+  },
+  "source_windows_smoke": {
+    "passed": true,
+    "checks": 75
+  },
+  "public_netease": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "install",
+        "passed": true
+      },
+      {
+        "name": "restore-first-install",
+        "passed": true
+      },
+      {
+        "name": "install-after-restore",
+        "passed": true
+      },
+      {
+        "name": "update",
+        "passed": true
+      },
+      {
+        "name": "restore-update",
+        "passed": true
+      },
+      {
+        "name": "update-after-restore",
+        "passed": true
+      },
+      {
+        "name": "uninstall",
+        "passed": true
+      },
+      {
+        "name": "uninstall-again",
+        "passed": true
+      },
+      {
+        "name": "update-uninstall-preserves-settings-fonts-presets-token-framework",
+        "passed": true
+      },
+      {
+        "entry": "安装网易云联动.bat",
+        "nativeWindowVisible": true
+      },
+      {
+        "entry": "卸载网易云联动.bat",
+        "nativeWindowVisible": true
+      },
+      {
+        "entry": "恢复网易云联动.bat",
+        "nativeWindowVisible": true
+      },
+      {
+        "name": "public-start-bat-smoke",
+        "passed": true
+      }
+    ],
+    "developerPathRemoved": true,
+    "cleanMachine": false,
+    "version": "0.7.0-beta.6",
+    "zipSha256": "2b3e08336d42f2bb1a934d7cf43ceb2bb29acd35dfb499ae56fc40d3cba088d3"
+  },
+  "final_public_zip_verified": true,
+  "public_qq": {
+    "passed": true,
+    "checks": {
+      "native_window_visible": true,
+      "correct_version": true,
+      "capability_hint": true,
+      "startup_control": true,
+      "cache_control": true,
+      "reuses_existing_instance": true
+    },
+    "developerPathRemoved": true,
+    "cleanMachine": false,
+    "realQQPlayback": false,
+    "zipSha256": "543797a550ac6c22732701ea8dd09c8a487c8b2ed8539a28974fe9e8ea26294a"
+  },
+  "layout": [
+    {
+      "passed": true,
+      "scale": "1",
+      "device_pixel_ratio": 1.0,
+      "checks": {
+        "requested_dpi": true,
+        "default_native_visible": true,
+        "default_reachable_0": true,
+        "default_reachable_1": true,
+        "default_reachable_2": true,
+        "default_reachable_3": true,
+        "default_reachable_4": true,
+        "default_reachable_5": true,
+        "default_reachable_6": true,
+        "default_apply_visible": true,
+        "default_restore_visible": true,
+        "small_native_visible": true,
+        "small_reachable_0": true,
+        "small_reachable_1": true,
+        "small_reachable_2": true,
+        "small_reachable_3": true,
+        "small_reachable_4": true,
+        "small_reachable_5": true,
+        "small_reachable_6": true,
+        "small_apply_visible": true,
+        "small_restore_visible": true
+      },
+      "fixture_version": false
+    },
+    {
+      "passed": true,
+      "scale": "1.25",
+      "device_pixel_ratio": 1.2499999995,
+      "checks": {
+        "requested_dpi": true,
+        "default_native_visible": true,
+        "default_reachable_0": true,
+        "default_reachable_1": true,
+        "default_reachable_2": true,
+        "default_reachable_3": true,
+        "default_reachable_4": true,
+        "default_reachable_5": true,
+        "default_reachable_6": true,
+        "default_apply_visible": true,
+        "default_restore_visible": true,
+        "small_native_visible": true,
+        "small_reachable_0": true,
+        "small_reachable_1": true,
+        "small_reachable_2": true,
+        "small_reachable_3": true,
+        "small_reachable_4": true,
+        "small_reachable_5": true,
+        "small_reachable_6": true,
+        "small_apply_visible": true,
+        "small_restore_visible": true
+      },
+      "fixture_version": false
+    },
+    {
+      "passed": true,
+      "scale": "1.5",
+      "device_pixel_ratio": 1.5,
+      "checks": {
+        "requested_dpi": true,
+        "default_native_visible": true,
+        "default_reachable_0": true,
+        "default_reachable_1": true,
+        "default_reachable_2": true,
+        "default_reachable_3": true,
+        "default_reachable_4": true,
+        "default_reachable_5": true,
+        "default_reachable_6": true,
+        "default_apply_visible": true,
+        "default_restore_visible": true,
+        "small_native_visible": true,
+        "small_reachable_0": true,
+        "small_reachable_1": true,
+        "small_reachable_2": true,
+        "small_reachable_3": true,
+        "small_reachable_4": true,
+        "small_reachable_5": true,
+        "small_reachable_6": true,
+        "small_apply_visible": true,
+        "small_restore_visible": true
+      },
+      "fixture_version": false
+    }
+  ],
+  "normal_netease": {
+    "client": "3.1.41.205529",
+    "plugin": "0.1.5",
+    "debug_port": false,
+    "playback_commands": 0,
+    "real_data": true,
+    "lyric_lines": 69,
+    "samples": 4,
+    "paused_observed": true,
+    "paused_position_unchanged": true,
+    "adapter": "state"
+  },
+  "preserved_user_files": {
+    "smoke-fonts\\b281b3c4cf9f8c78456c4505eb9ec27079b839a69fe25bdaddcd89b8932758ea.ttf": true,
+    "effect-presets.json": true,
+    "settings.ini": true,
+    "smoke-fonts\\ab9b19f46e1ca165ecdc4e7e612388eb496eaab91f2737016a75b054a2ac0ee9.otf": true
+  },
+  "token_preserved": true,
+  "archives": [
+    {
+      "player": "netease",
+      "filename": "dancing-lyrics-0.7.0-beta.6-netease-windows-x64.zip",
+      "bytes": 70697837,
+      "entries": 315,
+      "sha256": "2b3e08336d42f2bb1a934d7cf43ceb2bb29acd35dfb499ae56fc40d3cba088d3"
+    },
+    {
+      "player": "qqmusic",
+      "filename": "dancing-lyrics-0.7.0-beta.6-qqmusic-windows-x64.zip",
+      "bytes": 70690464,
+      "entries": 310,
+      "sha256": "543797a550ac6c22732701ea8dd09c8a487c8b2ed8539a28974fe9e8ea26294a"
+    }
+  ],
+  "same_engine": true,
+  "not_verified": [
+    "real_new_netease_version",
+    "new_real_play_seek_switch_regression",
+    "new_real_qq_playback",
+    "clean_machine",
+    "long_running",
+    "remote_debugging_regression_rejected_by_auto_review"
+  ],
+  "fixtures_are_not_real_compatibility": true
+}

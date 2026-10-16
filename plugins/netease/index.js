@@ -1,0 +1,142 @@
+(() => {
+    let socket=null, store=null, config=null, position=0, playId='', lastSent=0, lastLyrics='', lastSong='', fetchSong='', lastState='';
+    let clientVersion='', legacyLyrics=null, events=null, enabled=localStorage.getItem('floatingLyrics.enabled') !== 'false';
+    let status='正在连接桌面歌词…', launching=false, nextLaunch=0, pendingShow=false;
+    const buttons=new Set();
+    let diagnostic='', lastDiagnostic=0, connectionNote='';
+    function diagnose(code) {
+        if(socket?.readyState===WebSocket.OPEN && (code!==diagnostic || Date.now()-lastDiagnostic>=1000)){
+            try {
+                socket.send(JSON.stringify({kind:'diagnostic',token:config.token,client:clientVersion,code}));
+                diagnostic=code;lastDiagnostic=Date.now();
+            } catch (_) { /* A disconnected companion must never interrupt host callbacks. */ }
+        }
+    }
+    function updateStatus(value) {
+        status=value;
+        for(const item of buttons) {
+            if(item.title!==status) item.title=status;
+            const text=enabled?'都市回响 ✓':'都市回响';
+            if(item.textContent!==text) item.textContent=text;
+        }
+    }
+    function reportError(error) {updateStatus(error.message || String(error)); diagnose('interface_changed');console.warn('[FloatingLyrics]',status);}
+    function send(force=false, seek=false) {
+        if (!store || socket?.readyState !== WebSocket.OPEN) return;
+        const now=Date.now();
+        if (!force && now-lastSent<100) return;
+        try {
+            const state=store.getState(), p=state.playing;
+            if (!p) return;
+            if(!events?.bound) {
+                updateStatus('播放进度接口暂不可用，正在重试；音乐继续由网易云播放');diagnose('playback_missing');return;
+            }
+            if (p.playId !== playId) {playId=p.playId; position=0;}
+            const selected=FloatingLyricsAdapter.adaptiveLyrics(state,legacyLyrics);
+            const data=FloatingLyricsAdapter.snapshot(selected.state,position,enabled,clientVersion,config);
+            data.adapter=selected.adapter;
+            const transportState=JSON.stringify([data.song.id,data.playing,data.enabled,data.duration_ms]);
+            lastState=transportState;
+            const key=data.song.id, lyrics=JSON.stringify(data.lyrics);
+            if (key===lastSong && lyrics===lastLyrics) delete data.lyrics;
+            else {lastLyrics=lyrics;lastSong=key;}
+            data.token=config.token;
+            data.seek=seek;
+            socket.send(JSON.stringify(data));
+            diagnostic='';
+            lastSent=now;
+            updateStatus(enabled?`已连接${connectionNote} · ${selected.adapter==='cache'?'本机歌词缓存':'客户端歌词状态'} · 右键或点击旁边的设置调整效果`:'歌词效果已关闭 · 点击开启');
+            if (enabled && key && key!==fetchSong) {
+                fetchSong=key;
+                store.dispatch({type:'async:lyric/fetchLyric',payload:{force:true}});
+            }
+        } catch(error) {reportError(error);}
+    }
+    async function launch() {
+        if (launching || Date.now()<nextLaunch) return;
+        launching=true;nextLaunch=Date.now()+30000;
+        try {if (!await betterncm.app.exec(config.command, false, false)) throw new Error('桌面歌词启动失败，请检查插件安装位置');}
+        catch(error) {reportError(error);}
+        finally {launching=false;}
+    }
+    function connect() {
+        if (!config || socket && socket.readyState<2) return;
+        socket=new WebSocket('ws://127.0.0.1:38473');
+        socket.onopen=()=>{
+            diagnostic='';
+            lastLyrics='';lastSong='';send(true);
+            if(pendingShow){pendingShow=false;socket.send(JSON.stringify({kind:'show',token:config.token}));}
+        };
+        socket.onmessage=event=>{
+            try {if(JSON.parse(event.data).kind==='shutdown'){enabled=false;localStorage.setItem('floatingLyrics.enabled','false');updateStatus('已退出 · 点击启用');}} catch (_) {}
+        };
+        socket.onclose=()=>{socket=null;updateStatus('桌面歌词未连接 · 点击重试');};
+        socket.onerror=()=>{if(enabled||pendingShow) launch();};
+    }
+    function showSettings() {
+        if(socket?.readyState===WebSocket.OPEN) socket.send(JSON.stringify({kind:'show',token:config.token}));
+        else {pendingShow=true;nextLaunch=0;launch();connect();}
+    }
+    function installButtons() {
+        for (const anchor of document.querySelectorAll('[data-testid="tid_playbar_lyric_btn"]')) {
+            if(anchor.parentElement.querySelector('.floating-lyrics-entry')) continue;
+            const button=document.createElement('button');
+            button.className='floating-lyrics-entry';
+            button.style.cssText='border:0;border-radius:8px;padding:6px 9px;margin:0 4px;background:#ff3656;color:white;font-size:12px;cursor:pointer;white-space:nowrap';
+            button.onclick=()=>{enabled=!enabled;localStorage.setItem('floatingLyrics.enabled',String(enabled));if(enabled){nextLaunch=0;connect();}send(true);updateStatus(status);};
+            button.oncontextmenu=event=>{event.preventDefault();event.stopPropagation();showSettings();};
+            const settings=document.createElement('button');
+            settings.className='floating-lyrics-settings';settings.textContent='设置';
+            settings.title='打开歌词效果设置';
+            settings.style.cssText='border:0;border-radius:8px;padding:6px 7px;margin:0 2px;background:#eef1f5;color:#536079;font-size:12px;cursor:pointer;white-space:nowrap';
+            settings.onclick=event=>{event.stopPropagation();showSettings();};
+            anchor.insertAdjacentElement('afterend',button);
+            button.insertAdjacentElement('afterend',settings);buttons.add(button);
+        }
+        for(const button of buttons) if(!button.isConnected) buttons.delete(button);
+        updateStatus(status);
+    }
+    plugin.onLoad(async () => {
+        try {
+            clientVersion=betterncm.ncm.getNCMVersion();
+            config=JSON.parse(await betterncm.fs.readFileText(plugin.pluginPath+'/bridge-config.json'));
+            FloatingLyricsAdapter.authorizeClient(clientVersion,config);
+            connectionNote=config.compatibility?.status==='unverified'?'（实验性）':'';
+            legacyLyrics=new FloatingLyricsAdapter.LegacyLyricReader(
+                song=>FloatingLyricsAdapter.nativeLyricCache()(song),()=>send(true),error=>{
+                    console.warn('[FloatingLyrics] 歌词缓存暂不可用',error.message);
+                });
+            events=new FloatingLyricsAdapter.PlaybackEvents(()=>FloatingLyricsAdapter.playbackStreams(),
+                ()=>store?.getState().playing,(id,milliseconds,seek)=>{
+                    playId=id;position=milliseconds;send(seek,seek);
+                },reportError);
+            const attach=()=>{try {
+                if(!store) {
+                    store=FloatingLyricsAdapter.findStore(document.querySelector('[data-testid="tid_playbar_play_btn"]'));
+                    if(store) store.subscribe(()=>{
+                        const p=store.getState().playing;
+                        if(!p)return;
+                        const current=JSON.stringify([String(p.resourceTrackId||''),p.playingState===2,enabled,Math.round(p.resourceDuration*1000)]);
+                        send(current!==lastState);
+                    });
+                }
+                events.attach();
+            }catch(error){reportError(error);}};
+            // Both playback layouts remain mounted; add entries to each one.
+            const observer=new MutationObserver(()=>{attach();installButtons();});
+            observer.observe(document.body,{childList:true,subtree:true});
+            attach();installButtons();connect();
+            setInterval(()=>{attach();installButtons();if(enabled||pendingShow)connect();send();},1000);
+            window.addEventListener('beforeunload',()=>{events.close();socket?.close();});
+        } catch(error) {reportError(error);}
+    });
+    plugin.onConfig(()=>{
+        const section=document.createElement('div');
+        section.style.cssText='padding:20px;line-height:1.8';
+        const title=document.createElement('h2');title.textContent='都市回响';section.append(title);
+        const info=document.createElement('p');info.textContent='音乐由网易云播放。播放栏点击“都市回响”开关效果，右键或点击旁边的“设置”调整效果。';section.append(info);
+        const note=document.createElement('p');note.textContent=status;section.append(note);
+        const button=document.createElement('button');button.textContent='打开歌词效果设置';button.onclick=showSettings;section.append(button);
+        return section;
+    });
+})();

@@ -1,0 +1,337 @@
+{
+  "app_version": "0.8.0-beta.1",
+  "date": "2026-10-16",
+  "passed": true,
+  "environment": {
+    "windows_build": "10.0.26200",
+    "qt": "6.8.3",
+    "qq_music": "22.75.14.47.28",
+    "netease": "3.1.41.205529"
+  },
+  "automated_tests": {
+    "count": 367,
+    "seconds": 36.334,
+    "passed": true
+  },
+  "source_smoke": {
+    "passed": true,
+    "checks": 75,
+    "native_windows": true
+  },
+  "layouts": [
+    {
+      "dpr": 1.0,
+      "checks": 28,
+      "passed": true,
+      "physical_screens": 1,
+      "hotplug_hardware_test": false
+    },
+    {
+      "dpr": 1.25,
+      "checks": 28,
+      "passed": true,
+      "physical_screens": 1,
+      "hotplug_hardware_test": false
+    },
+    {
+      "dpr": 1.5,
+      "checks": 31,
+      "passed": true,
+      "physical_screens": 1,
+      "hotplug_hardware_test": false
+    }
+  ],
+  "benchmarks": [
+    {
+      "style": "glow",
+      "animation": "ripple_wave",
+      "singing": false,
+      "dpr": 1.5,
+      "cold_ms": 1806.675,
+      "p95_ms": 12.563,
+      "cache_bytes": 17866520,
+      "warm_blur_reused": true
+    },
+    {
+      "style": "glow",
+      "animation": "ripple_wave",
+      "singing": true,
+      "dpr": 1.5,
+      "cold_ms": 1763.135,
+      "p95_ms": 12.286,
+      "cache_bytes": 34808000,
+      "warm_blur_reused": true
+    },
+    {
+      "style": "glow",
+      "animation": "ripple_shake",
+      "singing": false,
+      "dpr": 1.5,
+      "cold_ms": 202.102,
+      "p95_ms": 13.74,
+      "cache_bytes": 34808000,
+      "warm_blur_reused": true
+    },
+    {
+      "style": "glow",
+      "animation": "ripple_shake",
+      "singing": true,
+      "dpr": 1.5,
+      "cold_ms": 208.791,
+      "p95_ms": 13.767,
+      "cache_bytes": 34808000,
+      "warm_blur_reused": true
+    },
+    {
+      "style": "glow",
+      "animation": "fall_wave",
+      "singing": false,
+      "dpr": 1.5,
+      "cold_ms": 210.739,
+      "p95_ms": 13.017,
+      "cache_bytes": 34808000,
+      "warm_blur_reused": true
+    },
+    {
+      "style": "glow",
+      "animation": "fall_wave",
+      "singing": true,
+      "dpr": 1.5,
+      "cold_ms": 213.392,
+      "p95_ms": 13.112,
+      "cache_bytes": 34808000,
+      "warm_blur_reused": true
+    },
+    {
+      "style": "glow",
+      "animation": "fall_shake",
+      "singing": false,
+      "dpr": 1.5,
+      "cold_ms": 199.102,
+      "p95_ms": 14.428,
+      "cache_bytes": 34808000,
+      "warm_blur_reused": true
+    },
+    {
+      "style": "glow",
+      "animation": "fall_shake",
+      "singing": true,
+      "dpr": 1.5,
+      "cold_ms": 221.599,
+      "p95_ms": 14.472,
+      "cache_bytes": 34808000,
+      "warm_blur_reused": true
+    },
+    {
+      "style": "gradient_fill",
+      "animation": "ripple_wave",
+      "singing": false,
+      "dpr": 1.5,
+      "cold_ms": 1079.081,
+      "p95_ms": 12.762,
+      "cache_bytes": 17866520,
+      "warm_blur_reused": true
+    },
+    {
+      "style": "gradient_fill",
+      "animation": "ripple_wave",
+      "singing": true,
+      "dpr": 1.5,
+      "cold_ms": 1080.621,
+      "p95_ms": 12.685,
+      "cache_bytes": 34808000,
+      "warm_blur_reused": true
+    },
+    {
+      "style": "gradient_fill",
+      "animation": "ripple_shake",
+      "singing": false,
+      "dpr": 1.5,
+      "cold_ms": 126.113,
+      "p95_ms": 13.894,
+      "cache_bytes": 34808000,
+      "warm_blur_reused": true
+    },
+    {
+      "style": "gradient_fill",
+      "animation": "ripple_shake",
+      "singing": true,
+      "dpr": 1.5,
+      "cold_ms": 130.4,
+      "p95_ms": 13.754,
+      "cache_bytes": 34808000,
+      "warm_blur_reused": true
+    },
+    {
+      "style": "gradient_fill",
+      "animation": "fall_wave",
+      "singing": false,
+      "dpr": 1.5,
+      "cold_ms": 123.669,
+      "p95_ms": 13.097,
+      "cache_bytes": 34808000,
+      "warm_blur_reused": true
+    },
+    {
+      "style": "gradient_fill",
+      "animation": "fall_wave",
+      "singing": true,
+      "dpr": 1.5,
+      "cold_ms": 133.93,
+      "p95_ms": 13.039,
+      "cache_bytes": 34808000,
+      "warm_blur_reused": true
+    },
+    {
+      "style": "gradient_fill",
+      "animation": "fall_shake",
+      "singing": false,
+      "dpr": 1.5,
+      "cold_ms": 117.511,
+      "p95_ms": 14.194,
+      "cache_bytes": 34808000,
+      "warm_blur_reused": true
+    },
+    {
+      "style": "gradient_fill",
+      "animation": "fall_shake",
+      "singing": true,
+      "dpr": 1.5,
+      "cold_ms": 131.497,
+      "p95_ms": 13.861,
+      "cache_bytes": 34808000,
+      "warm_blur_reused": true
+    }
+  ],
+  "real_playback": {
+    "qq": {
+      "passed": true,
+      "checks": {
+        "new_controls_keep_transport": true,
+        "native_window_visible": true,
+        "qq_process_found": true,
+        "real_connected": true,
+        "real_lyrics": true,
+        "progress_advances": true,
+        "playback_commands_zero": true
+      },
+      "simulated_data": false,
+      "source_harness": true,
+      "playback_commands": [],
+      "real_pause_seek_switch_verified": false,
+      "max_word_intervals": 326,
+      "translated_lines": 74,
+      "cache_observed": true
+    },
+    "netease": {
+      "passed": true,
+      "checks": {
+        "new_controls_keep_transport": true,
+        "native_window_visible": true,
+        "netease_process_found": true,
+        "real_connected": true,
+        "real_lyrics": true,
+        "progress_advances_or_paused": true,
+        "playback_commands_zero": true
+      },
+      "simulated_data": false,
+      "source_harness": true,
+      "playback_commands": [],
+      "real_pause_seek_switch_verified": false,
+      "max_word_intervals": 0,
+      "translated_lines": 33,
+      "cache_observed": false,
+      "actual_playback_advance": true
+    }
+  },
+  "public_packages": {
+    "qqmusic": {
+      "passed": true,
+      "checks": {
+        "native_window_visible": true,
+        "correct_version": true,
+        "capability_hint": true,
+        "startup_control": true,
+        "cache_control": true,
+        "reuses_existing_instance": true
+      },
+      "developerPathRemoved": true,
+      "cleanMachine": false,
+      "realQQPlayback": false,
+      "zipSha256": "64805f8f6b7de006993d3c1070338f3b725327d9ddba57cbeece620dd489678d"
+    },
+    "netease": {
+      "passed": true,
+      "checks": {
+        "isolated_source_install_update_restore": true,
+        "isolated_source_uninstall_preserves_settings_and_framework": true,
+        "isolated_source_offline_stage": true,
+        "frozen_running_client_guard": true,
+        "frozen_guard_keeps_plugin_absent": true,
+        "native_\u5b89\u88c5\u7f51\u6613\u4e91\u8054\u52a8.bat": true,
+        "native_\u5378\u8f7d\u7f51\u6613\u4e91\u8054\u52a8.bat": true,
+        "native_\u6062\u590d\u7f51\u6613\u4e91\u8054\u52a8.bat": true,
+        "public_start_bat_smoke": true
+      },
+      "version": "0.8.0-beta.1",
+      "zipSha256": "8d6464a28904c4155459f124931fccb404571b1d4a8ce9c49bccbb0e9bd58012",
+      "developerPathRemoved": true,
+      "cleanMachine": false,
+      "realClientBuild": "3.1.41.205529",
+      "frameworkHashVerified": true,
+      "frozen_positive_install_rerun": false,
+      "source_target_idle_probe_is_fixture": true,
+      "actual_client_restarted": false,
+      "playback_commands": 0,
+      "packaged_smoke_checks": 75
+    }
+  },
+  "archives": [
+    {
+      "player": "qqmusic",
+      "name": "dancing-lyrics-0.8.0-beta.1-qqmusic-windows-x64.zip",
+      "bytes": 70714305,
+      "entries": 310,
+      "sha256": "64805f8f6b7de006993d3c1070338f3b725327d9ddba57cbeece620dd489678d"
+    },
+    {
+      "player": "netease",
+      "name": "dancing-lyrics-0.8.0-beta.1-netease-windows-x64.zip",
+      "bytes": 70722053,
+      "entries": 315,
+      "sha256": "8d6464a28904c4155459f124931fccb404571b1d4a8ce9c49bccbb0e9bd58012"
+    }
+  ],
+  "same_engine": true,
+  "user_data_preservation": {
+    "stateFilesPreserved": 18,
+    "musicRestarted": false,
+    "musicProcessesUnchanged": true,
+    "stateCopyHashesMatch": true,
+    "playbackCommands": 0
+  },
+  "recording": {
+    "frames": 120,
+    "fps": 30,
+    "synthetic_lyric_times": true,
+    "nativeWindowVisible": true,
+    "logicalSize": [
+      1180,
+      560
+    ]
+  },
+  "restoration": {
+    "netease_entry_enabled": true,
+    "native_client_checkbox_observed": true,
+    "background_engine_running": true,
+    "music_clients_restarted": false
+  },
+  "not_verified": [
+    "second_clean_machine",
+    "physical_monitor_hotplug",
+    "real_pause_seek_switch_this_release",
+    "frozen_positive_install_rerun",
+    "all_custom_font_families",
+    "new_macos_binary"
+  ]
+}

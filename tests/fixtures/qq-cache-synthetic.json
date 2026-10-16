@@ -1,0 +1,28 @@
+{
+  "reference_commit": "2cc0e67dcfc567a122ebb953ef696783a6760d17",
+  "purpose": "Original synthetic test text; not downloaded song lyrics",
+  "samples": {
+    "qrc": {
+      "text": "[ti:缓存测试]\n[ar:演示歌手]\n[al:演示专辑]\n[offset:0]\n[0,1000]你(0,400)好(400,500)\n[1000,1000]Hello (1000,300)é🙂(1300,500)\n[2500,200]\n",
+      "hex": "9825b0ace3028368e8fc6c8f4559768ef7de27e5269ec242179bb5968029a113d6d5866cbd7603018e2bed33358c5a461bb2cbe7d3967fc63efcbda672f7b78ca15788c400f883590d547fdcffb1259cfaa38771513376020136ea3c382de66f46b2d2ca71d314e7f354447c65863fa4befa4d7ec069361434bf099a229cc08ca0cf3bc083948371f275b0410c3ae9199272bff14d5dadb759ddd7"
+    },
+    "translation": {
+      "text": "[offset:0]\n[00:00.00]你好译文\n[00:01.00]英文译文\n",
+      "hex": "9825b0ace3028368e8fc6c6ea7330f500ae9a10e7c3381eddfafc470ef28a753914f1c9ecb1c6c51ac8abca403ec1c29fb6bf56b3f56fbce2659939fccadf178d66e3b"
+    },
+    "pure": {
+      "text": "[00:00.00]纯音乐，请欣赏\n",
+      "hex": "9825b0ace3028368e8fc6c71ebe9f18931ecba51995fc55631510c8b66021a2bdea86b3418a0676171e3406b77530c8ce0d537823bf7ac90fcaab5"
+    }
+  },
+  "mask_boundaries": [
+    {
+      "length": 32780,
+      "sha256": "5f5f06d7b17c5bbdec0e67596b6979f9e0efb5623608005cad361e76a995e33a"
+    },
+    {
+      "length": 65570,
+      "sha256": "f1d57c78a363fc474c6e61a970b63fe03dd7e70848cfe9cc15228335e50fe609"
+    }
+  ]
+}

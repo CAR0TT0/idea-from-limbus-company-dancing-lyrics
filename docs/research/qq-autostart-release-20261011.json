@@ -1,0 +1,131 @@
+{
+  "format_version": 1,
+  "scope": "qq_autostart_and_client_22_75",
+  "app_version": "0.7.0-beta.5",
+  "environment": {
+    "os": "Windows 11 x64 build 26200",
+    "qq_music": "22.75",
+    "qq_build": "2275.14.47.28"
+  },
+  "native_autostart": {
+    "passed": true,
+    "checks": {
+      "checkbox_visible_in_current_music": true,
+      "checkbox_enables_registration_and_monitor": true,
+      "watcher_has_no_gui_audio_or_numpy_modules": true,
+      "duplicate_watcher_exits_successfully": true,
+      "actual_launcher_restores_existing_panel": true,
+      "manual_launch_reuses_one_companion": true,
+      "manual_quit_is_respected": true,
+      "disable_removes_registration_and_stops_monitor": true,
+      "monitor_starts_companion_for_real_qq": true,
+      "automatic_panel_stays_in_tray": true,
+      "autostarted_panel_has_real_qq_lyrics": true,
+      "autostarted_panel_reopens_without_duplicate": true,
+      "disable_keeps_current_companion": true,
+      "qq_play_state_and_track_unchanged": true
+    },
+    "observed_startup_ms": 1391,
+    "monitor_working_set_bytes": 31473664,
+    "qt_modules": [
+      "Qt6Core.dll"
+    ],
+    "playback_commands": 0
+  },
+  "real_qq_22_75": {
+    "passed": true,
+    "checks": {
+      "playingProgressAdvances": true,
+      "realPauseFrozen": true,
+      "nativeSmoke": true,
+      "realCacheSource": true,
+      "realWords": true,
+      "exitSuccess": true,
+      "originalSongAndPlaybackStateRestored": true
+    },
+    "simulated_data": false,
+    "song": "Between Two Worlds (Let's Lament)",
+    "lines": 76,
+    "word_intervals": 309,
+    "first_observed_snapshot_to_lyrics_ms": 172.0,
+    "latency_sample_count": 1,
+    "pause_settling_seconds": 6,
+    "pause_note": "Client issued one delayed timeline correction; stable paused position was checked after settling.",
+    "real_seek_or_switch_verified": false
+  },
+  "windows_smoke": {
+    "passed": true,
+    "checks": 75
+  },
+  "public_packages": {
+    "qqmusic": {
+      "passed": true,
+      "checks": {
+        "nativeWindowVisible": true,
+        "correctVersion": true,
+        "autostartControl": true,
+        "autostartOffByDefault": true,
+        "cacheSource": true,
+        "cacheDirectoryControl": true,
+        "connected": true,
+        "realLyricsReceived": true,
+        "repeatedPublicBatReusesInstance": true
+      },
+      "developer_path_removed": true,
+      "clean_machine": false
+    },
+    "netease": {
+      "passed": true,
+      "checks": 8,
+      "developer_path_removed": true,
+      "clean_machine": false,
+      "real_playback_verified_this_round": false
+    }
+  },
+  "layout": {
+    "passed": true,
+    "checks": 18,
+    "scales": [
+      100,
+      125,
+      150
+    ],
+    "sizes": [
+      [
+        1100,
+        760
+      ],
+      [
+        900,
+        560
+      ]
+    ],
+    "enabled_status_is_fixture": true
+  },
+  "preserved_user_files": 8,
+  "archives": [
+    {
+      "player": "qqmusic",
+      "filename": "dancing-lyrics-0.7.0-beta.5-qqmusic-windows-x64.zip",
+      "bytes": 70674961,
+      "entries": 309,
+      "sha256": "1035fbb122394af236d35b5f0bfdc88563f1d66ca4c0b46be90097a42f3cf24a"
+    },
+    {
+      "player": "netease",
+      "filename": "dancing-lyrics-0.7.0-beta.5-netease-windows-x64.zip",
+      "bytes": 70680922,
+      "entries": 313,
+      "sha256": "1496b82d799bff7a3e575806d523efb03dbe188f36eec2b29dab97c9ccb8810d"
+    }
+  ],
+  "not_verified": [
+    "windows_logoff_or_reboot",
+    "qq_restart_on_22_75",
+    "second_clean_machine",
+    "other_qq_versions",
+    "long_term_stability",
+    "22_75_manual_seek_or_switch",
+    "netease_real_playback_this_round"
+  ]
+}
