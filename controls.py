@@ -602,7 +602,7 @@ class ControlPanel(QWidget):
         cache_body.addLayout(cache_buttons)
         self.qq_cache_controls.setVisible(hasattr(self.player, "configure_cache_directory"))
         lyrics_body.addWidget(self.qq_cache_controls)
-        if self.source_short == "酷狗":
+        if self.source_short == "酷狗" and hasattr(self.player, "configure_native_replacement"):
             self.kugou_replace_checkbox = QCheckBox("接替酷狗桌面歌词")
             self.kugou_replace_checkbox.setChecked(self.prefs.kugou_replace_native)
             self.kugou_replace_checkbox.setToolTip("插件成功显示歌词后隐藏原生歌词窗口；关闭此项或退出插件会恢复。请保持酷狗的桌面歌词开关开启。")

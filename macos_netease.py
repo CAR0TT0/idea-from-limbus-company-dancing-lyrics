@@ -235,6 +235,9 @@ def load_song_lyrics(info):
 
 
 class MacNeteasePlayer(QObject):
+    source_name = "网易云音乐"
+    source_short = "网易云"
+    reader_name = "nowplaying-cli"
     changed = Signal()
     discontinuity = Signal()
     document_changed = Signal(object)
@@ -248,8 +251,8 @@ class MacNeteasePlayer(QObject):
     def __init__(self, parent=None, *, query=None, loader=load_song_lyrics, clock=time.monotonic,
                  executor=None, autostart=True):
         super().__init__(parent)
-        self.cli = find_nowplaying_cli() if query is None else None
-        self._query = query or (lambda: query_nowplaying(self.cli))
+        self.cli = self.find_reader() if query is None else None
+        self._query = query or (lambda: self.query_reader(self.cli))
         self._loader, self._clock = loader, clock
         self._executor = executor or ThreadPoolExecutor(max_workers=2, thread_name_prefix="mac-lyrics")
         self._owns_executor = executor is None
@@ -257,8 +260,8 @@ class MacNeteasePlayer(QObject):
         self.enabled = True
         self.song_id = self.title = self.artist = ""
         self.duration = 0
-        self.status = ("等待网易云音乐播放" if query or self.cli else
-                       "未找到 nowplaying-cli；请先运行 brew install nowplaying-cli，再重新启动。")
+        self.status = (f"等待{self.source_name}播放" if query or self.cli else
+                       f"未找到 {self.reader_name}；请先运行 brew install {self.reader_name}，再重新启动。")
         self._anchor = self._at = self._last_poll = 0
         self._rate = 1
         self._last_raw = None
@@ -276,6 +279,14 @@ class MacNeteasePlayer(QObject):
         if autostart:
             self.timer.start()
 
+    @staticmethod
+    def find_reader():
+        return find_nowplaying_cli()
+
+    @staticmethod
+    def query_reader(cli):
+        return query_nowplaying(cli)
+
     def _capture(self):
         return self._query(), self._clock()
 
@@ -290,7 +301,7 @@ class MacNeteasePlayer(QObject):
             except Exception as error:
                 logger.warning("Now Playing read failed: %s", error)
                 self.apply(None)
-                self.status = "读取系统播放信息失败，请检查 nowplaying-cli 版本；详情见 .state/app.log。"
+                self.status = f"读取系统播放信息失败，请检查 {self.reader_name} 版本；详情见 app.log。"
                 self.changed.emit()
                 self._next_poll = now + 2
             self._poll_future = None
@@ -310,7 +321,7 @@ class MacNeteasePlayer(QObject):
                             self._cache.popitem(last=False)
                         self._needs_lyrics = False
                         self.lyrics_received = True
-                        self.status = "已连接网易云音乐" if document else "本曲未匹配到歌词，保持空白。"
+                        self.status = f"已连接{self.source_name}" if document else "本曲未匹配到歌词，保持空白。"
                         self.document_changed.emit(document)
                     except Exception as error:
                         logger.warning("Mac lyric lookup failed: %s", error)
@@ -331,7 +342,7 @@ class MacNeteasePlayer(QObject):
                 self._generation += 1
                 self._needs_lyrics = self.lyrics_received = False
                 self.song_id = ""
-                self.status = "等待网易云音乐播放；请确认它是系统当前播放来源。"
+                self.status = f"等待{self.source_name}播放；请确认它是系统当前播放来源。"
                 self.document_changed.emit(None)
                 self.changed.emit()
             return
@@ -339,9 +350,7 @@ class MacNeteasePlayer(QObject):
         key = json.dumps([info.title, info.artist, info.duration_ms], ensure_ascii=False)
         switched = key != self.song_id
         playing = info.state == "playing"
-        jumped = switched or (self._last_raw != info.position_ms and abs(info.position_ms - self.position()) > 750)
-        if switched or self._last_raw != info.position_ms or playing != self.playing:
-            self._anchor, self._at = info.position_ms, now
+        jumped = self._observe_position(info, now, switched)
         self._last_poll, self._last_raw = now, info.position_ms
         self._rate = info.rate
         self.connected, self.playing = True, playing
@@ -358,15 +367,21 @@ class MacNeteasePlayer(QObject):
                 self.offset_changed.emit()
             self._retry_at = 0
             self._needs_lyrics = key not in self._cache
-            self.status = "正在匹配网易云歌词…"
+            self.status = f"正在匹配{self.source_short}歌词…"
             if key in self._cache:
                 self._cache.move_to_end(key)
                 self.lyrics_received = True
-                self.status = "已连接网易云音乐" if self._cache[key] else "本曲未匹配到歌词，保持空白。"
+                self.status = f"已连接{self.source_name}" if self._cache[key] else "本曲未匹配到歌词，保持空白。"
                 self.document_changed.emit(self._cache[key])
         if jumped:
             self.discontinuity.emit()
         self.changed.emit()
+
+    def _observe_position(self, info, now, switched):
+        jumped = switched or (self._last_raw != info.position_ms and abs(info.position_ms - self.position()) > 750)
+        if switched or self._last_raw != info.position_ms or (info.state == "playing") != self.playing:
+            self._anchor, self._at = info.position_ms, now
+        return jumped
 
     def position(self):
         elapsed = max(0, min(self._clock(), self._last_poll + 1.5) - self._at) * 1000 if self.playing else 0

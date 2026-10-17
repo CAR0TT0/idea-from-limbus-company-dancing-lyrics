@@ -12,16 +12,18 @@ import tempfile
 import urllib.request
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app_info import APP_VERSION
-from tools.package_macos import APP_BUNDLE, archive_name, audit_archive, MAC_RELEASE_TAG, record_runtime_licenses
+from tools.package_macos import (APP_BUNDLE, KUGOU_APP_BUNDLE, KUGOU_MAC_RELEASE_TAG,
+                                 archive_name, audit_archive, MAC_RELEASE_TAG, record_runtime_licenses, source_commit)
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def build(output_dir):
+def build(output_dir, player="netease"):
     if sys.platform != "darwin":
         raise RuntimeError("必须在对应架构的 macOS 环境中构建，Windows 不能交叉生成 Mac 应用")
     architecture = platform.machine()
-    output = Path(output_dir).resolve() / archive_name(architecture)
+    output = Path(output_dir).resolve() / archive_name(architecture, player)
+    bundle_name = KUGOU_APP_BUNDLE if player == "kugou" else APP_BUNDLE
     output.parent.mkdir(parents=True, exist_ok=True)
     if output.exists():
         raise FileExistsError(f"输出已存在，请使用新目录：{output}")
@@ -41,15 +43,16 @@ def build(output_dir):
     subprocess.run(["iconutil", "-c", "icns", str(iconset), "-o", str(iconset.with_suffix(".icns"))], check=True)
     dist = ROOT / "build/macos-dist"
     subprocess.run([sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--distpath", str(dist),
-                    "--workpath", str(ROOT / "build/macos-cache"), str(ROOT / "CityEchoes.spec")], cwd=ROOT, check=True)
-    bundle = dist / APP_BUNDLE
+                    "--workpath", str(ROOT / "build/macos-cache"), str(ROOT / "CityEchoes.spec")], cwd=ROOT,
+                   env={**os.environ, "CITY_ECHOES_MAC_PLAYER": player}, check=True)
+    bundle = dist / bundle_name
     subprocess.run(["codesign", "--verify", "--deep", "--strict", str(bundle)], check=True)
     with tempfile.TemporaryDirectory(prefix="mac-release-", dir=ROOT / "build") as temporary:
         stage = Path(temporary) / "CityEchoes"
         stage.mkdir()
-        shutil.copytree(bundle, stage / APP_BUNDLE, symlinks=True)
+        shutil.copytree(bundle, stage / bundle_name, symlinks=True)
         for name in ("使用说明.txt", "安装播放读取工具.command"):
-            shutil.copy2(ROOT / "release/macos" / name, stage / name)
+            shutil.copy2(ROOT / "release" / ("kugou-macos" if player == "kugou" else "macos") / name, stage / name)
         (stage / "安装播放读取工具.command").chmod(0o755)
         for name in ("LICENSE", "THIRD_PARTY_NOTICES.md"):
             shutil.copy2(ROOT / name, stage / name)
@@ -69,15 +72,16 @@ def build(output_dir):
                 python_license = response.read()
         (stage / "licenses/Python-LICENSE.txt").write_bytes(python_license)
         record_runtime_licenses(stage / "licenses", version, metadata.version("numpy"), architecture)
-        commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
-        info = {"version": APP_VERSION, "release_tag": MAC_RELEASE_TAG, "architecture": architecture,
+        commit = source_commit(ROOT)
+        info = {"version": APP_VERSION, "release_tag": KUGOU_MAC_RELEASE_TAG if player == "kugou" else MAC_RELEASE_TAG,
+                "player": player, "architecture": architecture,
                 "macos_build": platform.mac_ver()[0], "python": version, "pyside6": metadata.version("PySide6"),
                 "numpy": metadata.version("numpy"), "pyinstaller": metadata.version("pyinstaller"),
                 "source_commit": commit, "notarized": False, "live_playback_verified": False,
-                "external_dependency": "nowplaying-cli (not bundled)"}
+                "external_dependency": ("media-control" if player == "kugou" else "nowplaying-cli") + " (not bundled)"}
         (stage / "build-info.json").write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8")
         subprocess.run(["ditto", "-c", "-k", "--sequesterRsrc", "--keepParent", str(stage), str(output)], check=True)
-    audit = audit_archive(output)
+    audit = audit_archive(output, player)
     output.with_suffix(".zip.sha256").write_text(f"{audit['sha256']}  {output.name}\n", encoding="ascii")
     print(json.dumps({"archive": str(output), **audit}, ensure_ascii=False))
     return output
@@ -86,4 +90,6 @@ def build(output_dir):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-dir", type=Path, default=ROOT / "artifacts/mac-release")
-    build(parser.parse_args().output_dir)
+    parser.add_argument("--player", choices=("netease", "kugou"), default="netease")
+    args = parser.parse_args()
+    build(args.output_dir, args.player)

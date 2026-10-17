@@ -8,6 +8,11 @@ macOS 初始适配来源于 [qingyin-alice-zhong/mac-version](https://github.com
 macOS 使用的 [nowplaying-cli](https://github.com/kirtan-shah/nowplaying-cli) 是通过 Homebrew 单独安装的 GPLv3 外部程序，本仓库及 Windows ZIP 不附带该二进制。
 歌词接口沿用原 mac 分支的网易云在线接口，不分发歌曲音频或缓存的个人歌词。
 
+酷狗 macOS 实验适配改用 [media-control](https://github.com/ungive/media-control)（BSD-3-Clause）读取系统媒体信息，
+通过 Homebrew 独立安装，本项目不附带其二进制。底层 [MediaRemote Adapter](https://github.com/ungive/mediaremote-adapter)
+同为 BSD-3-Clause，使用系统私有框架；仅依据公开字段说明实现读取协议，没有复制或链接该工具源码。
+酷狗版歌词读取沿用本项目的 KRC/LRC 模块，具体边界见 [KUGOU-MACOS.md](KUGOU-MACOS.md)。
+
 | 组件 | 用途 | 许可与来源 |
 | --- | --- | --- |
 | Python 3.11.8（Windows）／3.12.10（Mac CI） | 成品内置运行时，Mac 实际版本另见包内 build-info.json | PSF，https://www.python.org/downloads/source/ |

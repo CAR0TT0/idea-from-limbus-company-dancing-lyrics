@@ -12,7 +12,7 @@ DOCUMENTS = tuple(ROOT / name for name in ("AGENTS.md", "CHANGELOG.md", "README.
                                          "产品设计方案.md", "技术文档.md", "THIRD_PARTY_NOTICES.md",
                                          "docs/传播文案.md", "release/release-notes.md", "MACOS.md",
                                          "release/macos/release-notes.md", "QQMUSIC.md",
-                                         "docs/QQ歌词缓存研究.md", "docs/客户端兼容维护.md"))
+                                         "docs/QQ歌词缓存研究.md", "docs/客户端兼容维护.md", "KUGOU-MACOS.md"))
 
 
 class WorkflowDocumentationTests(unittest.TestCase):

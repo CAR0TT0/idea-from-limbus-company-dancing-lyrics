@@ -1,9 +1,12 @@
 # -*- mode: python ; coding: utf-8 -*-
 from pathlib import Path
+import os
 from app_info import APP_VERSION
 
 root = Path(SPECPATH)
-a = Analysis([str(root / 'main_mac.py')], pathex=[str(root)],
+kugou = os.environ.get('CITY_ECHOES_MAC_PLAYER') == 'kugou'
+bundle_name = '都市回响·酷狗.app' if kugou else '都市回响.app'
+a = Analysis([str(root / ('main_mac_kugou.py' if kugou else 'main_mac.py'))], pathex=[str(root)],
     binaries=[], datas=[(str(root / 'assets'), 'assets')], hiddenimports=[],
     hookspath=[], hooksconfig={}, runtime_hooks=[],
     excludes=['PySide6.QtPdf', 'PySide6.QtPdfWidgets', 'PySide6.QtVirtualKeyboard'],
@@ -19,10 +22,10 @@ exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name='CityEchoes',
     debug=False, strip=False, upx=False, console=False, argv_emulation=False,
     target_arch=None, codesign_identity=None, entitlements_file=None)
 coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name='CityEchoes')
-app = BUNDLE(coll, name='都市回响.app', icon=str(root / 'build/macos/CityEchoes.icns'),
-    bundle_identifier='com.celine258.cityechoes', info_plist={
-        'CFBundleName': '都市回响', 'CFBundleDisplayName': '都市回响',
-        'CFBundleShortVersionString': APP_VERSION, 'CFBundleVersion': '0.6.0',
+app = BUNDLE(coll, name=bundle_name, icon=str(root / 'build/macos/CityEchoes.icns'),
+    bundle_identifier='com.celine258.cityechoes.kugou' if kugou else 'com.celine258.cityechoes', info_plist={
+        'CFBundleName': bundle_name[:-4], 'CFBundleDisplayName': bundle_name[:-4],
+        'CFBundleShortVersionString': APP_VERSION, 'CFBundleVersion': '0.8.0',
         'LSMinimumSystemVersion': '13.0', 'NSHighResolutionCapable': True,
         'NSPrincipalClass': 'NSApplication',
     })

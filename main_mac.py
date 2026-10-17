@@ -7,7 +7,9 @@ from pathlib import Path
 import sys
 
 
-def default_state_directory():
+def default_state_directory(kugou=False):
+    if kugou:
+        return Path.home() / "Library" / "Application Support" / "DancingLyrics-Kugou"
     # A signed app bundle must remain immutable; updates must not erase user data.
     if getattr(sys, "frozen", False):
         return Path.home() / "Library" / "Application Support" / "CityEchoes"
@@ -16,9 +18,11 @@ def default_state_directory():
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="都市回响 · macOS 实验版")
-    parser.add_argument("--local", action="store_true", help="本地音乐与 LRC 模式")
-    parser.add_argument("--check", action="store_true", help="检查系统与 nowplaying-cli，不启动窗口")
-    parser.add_argument("--state-dir", type=Path, help="自定义设置目录；默认项目目录中的 .state")
+    source = parser.add_mutually_exclusive_group()
+    source.add_argument("--local", action="store_true", help="本地音乐与 LRC 模式")
+    source.add_argument("--kugou", action="store_true", help="酷狗 Mac 系统播放信息联动")
+    parser.add_argument("--check", action="store_true", help="检查系统与播放读取工具，不启动窗口")
+    parser.add_argument("--state-dir", type=Path, help="自定义设置目录")
     parser.add_argument("--smoke", action="store_true", help="隔离的静音打包验证（模拟播放信息）")
     parser.add_argument("--report-dir", type=Path, help="静音验证报告目录")
     args = parser.parse_args(argv)
@@ -30,8 +34,12 @@ def main(argv=None):
     os.environ["QT_MEDIA_BACKEND"] = "ffmpeg"
     from macos_netease import MacNeteasePlayer, OffsetStore, find_nowplaying_cli
     if args.check:
-        cli = find_nowplaying_cli()
-        print(json.dumps({"platform": sys.platform, "nowplaying_cli": cli,
+        if args.kugou:
+            from macos_kugou import find_media_control
+        cli = find_media_control() if args.kugou else find_nowplaying_cli()
+        print(json.dumps({"platform": sys.platform, "reader": cli,
+                          "player": "kugou" if args.kugou else "netease",
+                          "architecture": __import__("platform").machine(),
                           "ready": bool(cli), "live_playback_verified": False}, ensure_ascii=False))
         return 0 if cli else 1
     from PySide6.QtCore import Qt
@@ -43,7 +51,7 @@ def main(argv=None):
     from overlay import LyricsOverlay
     from settings import DEFAULT_FONT_FAMILY, SettingsStore, app_directory
 
-    state_dir = args.state_dir or default_state_directory()
+    state_dir = args.state_dir or default_state_directory(args.kugou)
     state_dir.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(filename=state_dir / "app.log", level=logging.INFO,
                         format="%(asctime)s %(levelname)s %(message)s", encoding="utf-8")
@@ -68,6 +76,10 @@ def main(argv=None):
     if args.local:
         from player import MusicPlayer
         player = MusicPlayer()
+    elif args.kugou:
+        from macos_kugou import MacKugouPlayer
+        player = MacKugouPlayer(autostart=not args.smoke, cache_directory=prefs.kugou_cache_directory)
+        player.set_offset_store(OffsetStore(state_dir / "offsets.json"))
     else:
         player = MacNeteasePlayer(autostart=not args.smoke)
         player.set_offset_store(OffsetStore(state_dir / "offsets.json"))
@@ -82,7 +94,7 @@ def main(argv=None):
             shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
             shortcut.activated.connect(lambda step=delta: player.adjust_offset(step))
             shortcuts.append(shortcut)
-        panel.source_label.setText("请打开网易云 Mac 版；⌘⌥↑ / ⌘⌥↓ 微调歌词偏移。")
+        panel.source_label.setText(f"请打开{player.source_short} Mac 版；⌘⌥↑ / ⌘⌥↓ 微调歌词偏移。")
         if player._offset_store.error:
             panel.show_notice(player._offset_store.error)
     app.aboutToQuit.connect(lambda: store.save(prefs))

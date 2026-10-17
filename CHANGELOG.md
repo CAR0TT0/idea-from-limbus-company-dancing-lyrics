@@ -2,6 +2,37 @@
 
 每次改动按日期追加记录，包含改动目的、涉及文件、测试与验证结果、影响或已知限制。
 
+## 2026-10-17：酷狗 macOS 独立实验适配（kugou-macos.1）
+
+### 改动
+
+- 新增 `macos_kugou.py`，通过外部 BSD-3-Clause 工具 `media-control` 仅读取系统媒体信息，
+  要求酷狗来源 `com.kugou.mac.Music`、真实时间轴和明确播放状态；按微秒时间戳计算进度，
+  连续单调插值、渐进校准、暂停冻结、跳转重建及读取失效处理。复用 KRC/LRC 解码、逐字和结束时间、译文及渲染模块。
+- `macos_netease.py` 提取来源标签、读者和位置观测扩展点；新增 `main_mac_kugou.py`，
+  `main_mac.py --kugou` 选择独立适配与个人设置目录。`controls.py` 依据实际能力显示原生歌词接替开关，Mac 不提供该开关。
+- 新增中文安装、启动、诊断与打包 `.command`，自动识别当前 Mac 环境；`tools/probe_kugou_macos.py`
+  输出不含歌曲名称或歌词正文的单次诊断。构建、审核、原生验证工具和 `CityEchoes.spec` 支持独立酷狗 `.app`、架构包名及无 Git 的源码 ZIP。
+- 新增只允许明确文件的 `tools/package_kugou_macos_source.py`、手动双架构构建工作流、
+  `tests/test_kugou_macos.py` 的 24 项回归；更新 Mac／项目指南、第三方说明、验证记录和结构化范围。
+
+### 测试与验证
+
+- `D:\gptdate\.venv\Scripts\python.exe -X utf8 -m unittest discover -s tests -q`：运行 455 项，1 项按原有条件跳过，其余通过。
+  覆盖正确／未知来源、缺失／非有限时间轴、时间戳和倍速、暂停／跳转／读取中断、正常切句不回拨、切歌迟到歌词、重试、真实 KRC 区间、偏移及 UI 能力边界。
+- `D:\gptdate\.venv\Scripts\python.exe -X utf8 main.py --smoke --report-dir artifacts/mac-port-shared-smoke`：
+  Windows 共享界面静音 75 项通过，使用合成音频；未向实际酷狗发送播放或窗口命令。
+- 源码 ZIP 解压到独立临时目录后，24 项回归再次通过；检查依赖导入、无 `.git` 时来源记录、Bash 语法、非 Mac 拒绝、
+  LF／可执行权限、私有配置及外部二进制排除、Mac 双架构包名和对应 bundle 审核。结构化范围见 `docs/research/kugou-macos-20261017.json`。
+
+### 影响与限制
+
+- 本轮交付 **源码测试版**，没有构建 Mac `.app`，没有完成 Mac 实际酷狗播放、Finder 双击、最小化后台、关闭与恢复、全屏 Spaces 或长期验收。
+  Mac 构建和 Cocoa 验证需在原生环境执行；远端工作流已准备但未推送或触发。计划支持 macOS 13+ 的 arm64 / x86_64，两架构均待实际验证。
+- 默认轻波浪；没有 Mac 真实音频强弱采集，也不自动接替原生歌词。仅读取系统信息，不控制酷狗窗口、不注入、不改客户端或版本号，不安装登录项。
+  系统私有框架或歌曲接口变化仍可能失效，不能保证所有未来版本。个人数据在 `~/Library/Application Support/DancingLyrics-Kugou/`。
+  本机 Windows 插件和自动启动继续停用；这次 Mac 适配不代表 Windows 第 4 版关闭故障已经修复。
+
 ## 2026-10-17：酷狗显示接替、托盘隐藏与歌词起止修复（kugou.4）
 
 ### 改动
