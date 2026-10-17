@@ -28,6 +28,7 @@ def resource_path(name: str) -> Path:
 @dataclass
 class Preferences:
     kugou_cache_directory: str = ""
+    kugou_replace_native: bool = True
     font_family: str = DEFAULT_FONT_FAMILY
     font_size: int = 32
     color: str = "#a9f4dc"

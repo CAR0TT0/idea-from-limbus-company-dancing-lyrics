@@ -602,6 +602,12 @@ class ControlPanel(QWidget):
         cache_body.addLayout(cache_buttons)
         self.qq_cache_controls.setVisible(hasattr(self.player, "configure_cache_directory"))
         lyrics_body.addWidget(self.qq_cache_controls)
+        if self.source_short == "酷狗":
+            self.kugou_replace_checkbox = QCheckBox("接替酷狗桌面歌词")
+            self.kugou_replace_checkbox.setChecked(self.prefs.kugou_replace_native)
+            self.kugou_replace_checkbox.setToolTip("插件成功显示歌词后隐藏原生歌词窗口；关闭此项或退出插件会恢复。请保持酷狗的桌面歌词开关开启。")
+            self.kugou_replace_checkbox.toggled.connect(self._set_kugou_replacement)
+            lyrics_body.addWidget(self.kugou_replace_checkbox)
         self.analysis_label = label("音乐律动将在播放后开启。", "muted")
         lyrics_body.addWidget(self.analysis_label)
         body.addWidget(lyrics)
@@ -1102,9 +1108,16 @@ class ControlPanel(QWidget):
 
     def toggle_overlay(self):
         self.overlay.setVisible(not self.overlay.isVisible())
+        if hasattr(self.player, "set_overlay_visible"):
+            self.player.set_overlay_visible(self.overlay.isVisible())
         text = "隐藏歌词" if self.overlay.isVisible() else "显示歌词"
         self.visibility_button.setText(text)
         self.tray_visibility.setText(text)
+
+    def _set_kugou_replacement(self, enabled):
+        self.prefs.kugou_replace_native = enabled
+        self.store.save(self.prefs)
+        self.player.configure_native_replacement(enabled)
 
     def _volume_changed(self, value):
         self.prefs.volume = value

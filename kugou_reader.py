@@ -1,4 +1,4 @@
-"""Isolated read-only SMTC / window OCR reader. Never injects or patches KuGou."""
+"""Isolated SMTC / read-only native lyric / window OCR companion reader."""
 import asyncio
 import ctypes
 from ctypes import wintypes as w
@@ -7,6 +7,7 @@ import math
 import os
 from pathlib import PureWindowsPath
 import re
+import struct
 import sys
 import time
 import unicodedata
@@ -218,42 +219,78 @@ async def smtc_snapshot(manager):
                 playing=playing, rate=rate, mode="smtc")
 
 
-async def reader(once=False):
+async def sample_channels(manager, native, windows, window=None):
+    media = await smtc_snapshot(manager)
+    if media is not None and media["duration_ms"] > 0:
+        return media, "系统媒体接口 · 自动读取酷狗歌曲与进度。", window
+    pid = windows.pid()
+    native_snapshot = None
+    if pid:
+        try:
+            native_snapshot = native.read(pid, media)
+        except (ValueError, OSError, KeyError, AttributeError, struct.error):
+            # Unknown private layouts fail closed; window OCR remains available.
+            native_snapshot = None
+    if native_snapshot is not None:
+        after = await smtc_snapshot(manager)
+        if media is not None and (after is None or (media["title"], media["artist"]) != (after["title"], after["artist"])):
+            return None, "正在切歌，等待歌曲信息稳定。", window
+        if media is None and after is not None:
+            from kugou_native import normalized
+            if (normalized(native_snapshot["title"]) != normalized(after["title"]) or
+                    after["artist"] and normalized(native_snapshot["artist"]) != normalized(after["artist"])):
+                return None, "正在切歌，等待歌曲信息稳定。", window
+            native_snapshot["playing"], native_snapshot["rate"] = after["playing"], after["rate"]
+        return native_snapshot, "原生歌词通道 · 支持最小化；毫秒进度，显示时长取歌词时间范围。", window
+    window = window or WindowReader()
+    snapshot, message = await window.read(timing_only=media is not None)
+    if snapshot is not None and media is not None:
+        after = await smtc_snapshot(manager)
+        if after is None or (media["title"], media["artist"]) != (after["title"], after["artist"]):
+            return None, "正在切歌，等待歌曲信息稳定。", window
+        for key in ("source", "title", "artist", "album", "playing", "rate"):
+            snapshot[key] = media[key]
+        snapshot["mode"] = "hybrid"
+        message = "界面兼容模式 · 约 1 秒精度，需还原主窗口；打开酷狗桌面歌词可尝试后台通道。"
+    if snapshot is None and "还原" in message:
+        message = "等待酷狗原生歌词数据：请打开酷狗自带的桌面歌词；不支持时请还原主窗口使用界面兼容模式。"
+    return snapshot, message, window
+
+
+async def reader(once=False, parent_pid=None):
     import winrt.windows.foundation
     import winrt.windows.foundation.collections
     from winrt.windows.media.control import GlobalSystemMediaTransportControlsSessionManager as Manager
+    from kugou_native import NativeLyricsReader
+    from kugou_windows import Windows, NativeVisibility, CommandPipe
     manager = window = None
-    while True:
-        try:
-            if manager is None:
-                manager = await asyncio.wait_for(Manager.request_async(), 3)
-            snapshot = await smtc_snapshot(manager)
-            message = "系统媒体接口 · 自动读取酷狗歌曲与进度。"
-            if snapshot is None or snapshot["duration_ms"] <= 0:
-                window = window or WindowReader()
-                media = snapshot
-                snapshot, message = await window.read(timing_only=media is not None)
-                if snapshot is not None and media is not None:
-                    # Verify the same media item still owns the window sample.
-                    after = await smtc_snapshot(manager)
-                    if after is None or (media["title"], media["artist"]) != (after["title"], after["artist"]):
-                        snapshot = None
-                        message = "正在切歌，等待歌曲信息稳定。"
-                    else:
-                        for key in ("source", "title", "artist", "album", "playing", "rate"):
-                            snapshot[key] = media[key]
-                        snapshot["mode"] = "hybrid"
-                        message = "兼容模式 · 系统歌曲与播放状态 + 界面进度（约 1 秒精度，需还原酷狗主窗口）。"
-            recoverable = snapshot is None and message in (
-                "界面兼容模式：等待播放栏显示可识别的歌名和进度。", "正在切歌，等待歌曲信息稳定。")
-            print(json.dumps(dict(snapshot=snapshot, message=message, recoverable=recoverable), ensure_ascii=False), flush=True)
-        except Exception as error:
-            print(json.dumps(dict(snapshot=None, message="读取暂不可用，将自动重试。", error=type(error).__name__,
-                                  recoverable=True), ensure_ascii=False), flush=True)
-            manager = None
-        if once:
-            break
-        await asyncio.sleep(.4)
+    windows, native, commands = Windows(), NativeLyricsReader(), CommandPipe()
+    visibility = NativeVisibility(windows)
+    visibility.close()  # Recover a window leased by a previous dead helper.
+    try:
+        while True:
+            if commands.quit or parent_pid and not windows.alive(parent_pid):
+                break
+            try:
+                if manager is None:
+                    manager = await asyncio.wait_for(Manager.request_async(), 3)
+                snapshot, message, window = await sample_channels(manager, native, windows, window)
+                replace = commands.poll() and snapshot is not None and snapshot["mode"] in ("native", "smtc")
+                visibility.replace(windows.pid() if replace else None, replace)
+                recoverable = snapshot is None and (native.process is not None or message in (
+                    "界面兼容模式：等待播放栏显示可识别的歌名和进度。", "正在切歌，等待歌曲信息稳定。"))
+                print(json.dumps(dict(snapshot=snapshot, message=message, recoverable=recoverable), ensure_ascii=False), flush=True)
+            except Exception as error:
+                visibility.close()
+                print(json.dumps(dict(snapshot=None, message="读取暂不可用，将自动重试。", error=type(error).__name__,
+                                      recoverable=True), ensure_ascii=False), flush=True)
+                manager = None
+            if once:
+                break
+            await asyncio.sleep(.15)
+    finally:
+        visibility.close()
+        native.close()
 
 
 def run(once=False):
@@ -266,7 +303,11 @@ def run(once=False):
         sys.stdout = os.fdopen(fd, "w", encoding="utf-8", buffering=1)
     else:
         sys.stdout.reconfigure(encoding="utf-8", errors="strict")
-    asyncio.run(reader(once))
+    parent_pid = None
+    if "--parent-pid" in sys.argv:
+        index = sys.argv.index("--parent-pid")
+        parent_pid = int(sys.argv[index + 1])
+    asyncio.run(reader(once, parent_pid))
     return 0
 
 

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import json
 import logging
 import math
+import os
 from pathlib import Path
 import sys
 import threading
@@ -47,7 +48,7 @@ def parse_snapshot(data):
         upper = 4 if field == "rate" else 86400000
         if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not 0 <= value <= upper:
             raise ValueError("酷狗播放时间无效")
-    if not isinstance(data.get("playing"), bool) or data.get("mode") not in ("smtc", "ocr", "hybrid"):
+    if not isinstance(data.get("playing"), bool) or data.get("mode") not in ("smtc", "native", "ocr", "hybrid"):
         raise ValueError("酷狗播放状态无效")
     duration = int(data["duration_ms"])
     if not duration:
@@ -60,13 +61,13 @@ class KugouPlayer(NeteasePlayer):
     source_id = "kugou"
     source_name = "酷狗音乐"
     source_short = "酷狗"
-    connect_hint = "打开酷狗并播放歌曲；界面兼容模式请保持酷狗主窗口还原。"
+    connect_hint = "打开酷狗自带的桌面歌词，可尝试最小化同步；界面兼容模式需还原主窗口。"
 
     def __init__(self, parent=None, *, clock=time.monotonic, loader=load_song_lyrics, executor=None, autostart=True,
-                 cache_directory=""):
+                 cache_directory="", replace_native=True):
         super().__init__(clock=clock, parent=parent)
         self.status = "等待酷狗音乐播放歌曲"
-        self.compatibility_status = "自动检测系统媒体接口及界面兼容通道，无客户端版本号限制。"
+        self.compatibility_status = "自动检测系统媒体、原生歌词与界面兼容通道，无客户端版本号限制。"
         self.lyric_status = "等待酷狗歌词"
         self._snapshot = None
         self._timeline_clock = PlaybackClock()
@@ -88,12 +89,17 @@ class KugouPlayer(NeteasePlayer):
         self._last_packet = clock()
         self._restart_at = 0
         self._pending = b""
+        self.replace_native = replace_native
+        self.overlay_visible = True
+        self._command_at = 0
+        self._reader_pid = 0
         self.process = QProcess(self)
         self.process.setProcessChannelMode(QProcess.ProcessChannelMode.SeparateChannels)
         self.process.readyReadStandardOutput.connect(self._read)
         self.process.readyReadStandardError.connect(lambda: self.process.readAllStandardError())
         self.process.finished.connect(self._helper_failed)
         self.process.errorOccurred.connect(self._helper_failed)
+        self.process.started.connect(lambda: setattr(self, "_reader_pid", int(self.process.processId())))
         self.timer = QTimer(self)
         self.timer.setInterval(100)
         self.timer.timeout.connect(self._poll)
@@ -110,10 +116,35 @@ class KugouPlayer(NeteasePlayer):
         self._pending = b""
         self._last_packet = self._clock()
         args = [] if getattr(sys, "frozen", False) else [str(resource_path("main.py"))]
-        self.process.start(sys.executable, args + ["--kugou-reader"])
+        self.process.start(sys.executable, args + ["--kugou-reader", "--parent-pid", str(os.getpid())])
+
+    def configure_native_replacement(self, enabled):
+        self.replace_native = bool(enabled)
+        self._command_at = 0
+        self._send_visibility()
+
+    def set_overlay_visible(self, visible):
+        self.overlay_visible = bool(visible)
+        self._command_at = 0
+        self._send_visibility()
+
+    def _send_visibility(self):
+        if self.process.state() != QProcess.ProcessState.Running or self._clock() < self._command_at:
+            return
+        enabled = (self.replace_native and self.overlay_visible and self.connected and self.lyrics_received
+                   and self._snapshot is not None and self._snapshot.mode in ("native", "smtc"))
+        self.process.write((json.dumps(dict(replace_native=enabled)) + "\n").encode("utf-8"))
+        self._command_at = self._clock() + .5
+
+    def _restore_native(self):
+        pid = int(self.process.processId()) or self._reader_pid
+        if pid:
+            from kugou_windows import NativeVisibility
+            NativeVisibility(owner_pid=pid).close()
 
     def _helper_failed(self, *_):
         if not self._closed:
+            self._restore_native()
             self.disconnect("酷狗读取助手暂不可用，5 秒后自动重连。")
             self._restart_at = self._clock() + 5
 
@@ -188,7 +219,8 @@ class KugouPlayer(NeteasePlayer):
         self.playing, self.connected = snapshot.playing and self.enabled, True
         self.ended = self._anchor >= self.duration
         self.status = "已连接酷狗音乐 · 播放操作请在酷狗中进行。"
-        self.compatibility_status = message or ("系统媒体接口可用。" if snapshot.mode == "smtc" else "界面兼容模式 · 约 1 秒精度，需还原主窗口。")
+        self.compatibility_status = message or ({"smtc": "系统媒体接口可用。", "native": "原生歌词通道 · 支持最小化。"}.get(
+            snapshot.mode, "界面兼容模式 · 约 1 秒精度，需还原主窗口。"))
         if jumped:
             self.discontinuity.emit()
         if switched and snapshot.key in self._cache:
@@ -255,9 +287,11 @@ class KugouPlayer(NeteasePlayer):
                         self._cache.popitem(last=False)
                     self._retry_at = float("inf")
         self._schedule_lyrics()
+        self._send_visibility()
         if self.process.state() != QProcess.ProcessState.NotRunning:
             if self._clock() - self._last_packet > 8:
                 self.disconnect("酷狗读取超时，正在重建读取通道。")
+                self._restore_native()
                 self.process.kill()
         elif self._clock() >= self._restart_at:
             self._start_helper()
@@ -284,8 +318,11 @@ class KugouPlayer(NeteasePlayer):
         self.timer.stop()
         self._cancel.set()
         if self.process.state() != QProcess.ProcessState.NotRunning:
-            self.process.terminate()
-            if not self.process.waitForFinished(1000):
+            self._restore_native()
+            self.process.write(b'{"quit":true}\n')
+            self.process.waitForBytesWritten(200)
+            if not self.process.waitForFinished(1500):
+                self._restore_native()
                 self.process.kill()
                 self.process.waitForFinished(1000)
         if self._owns_executor:

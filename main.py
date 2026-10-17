@@ -134,7 +134,7 @@ def main():
     if args.kugou:
         from kugou import KugouPlayer
         from process_audio import ProcessAudio, window_process_pid
-        player = KugouPlayer(cache_directory=prefs.kugou_cache_directory)
+        player = KugouPlayer(cache_directory=prefs.kugou_cache_directory, replace_native=prefs.kugou_replace_native)
         audio = ProcessAudio(player, pid_finder=lambda: window_process_pid("kugou.exe"))
         app.aboutToQuit.connect(audio.close)
     elif args.qqmusic:

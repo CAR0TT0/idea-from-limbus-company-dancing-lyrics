@@ -11,7 +11,7 @@ import sys
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.0-beta.1-kugou.2"
+VERSION = "0.8.0-beta.1-kugou.3"
 
 
 def main():
@@ -65,7 +65,7 @@ def main():
         shutil.copyfile(actual_python_license, ready / "licenses/Python-LICENSE.txt")
     for name in ("winrt-runtime", "winrt-Windows.Media.Control", "winrt-Windows.Media.Ocr",
                  "winrt-Windows.Foundation", "winrt-Windows.Foundation.Collections", "winrt-Windows.Globalization",
-                 "winrt-Windows.Graphics.Imaging", "winrt-Windows.Storage.Streams"):
+                 "winrt-Windows.Graphics.Imaging", "winrt-Windows.Storage.Streams", "pefile"):
         distribution = importlib.metadata.distribution(name)
         for item in distribution.files:
             if "dist-info" in str(item) and ("license" in item.name.casefold() or "copying" in item.name.casefold()):
@@ -73,7 +73,8 @@ def main():
     with (ready / "THIRD_PARTY_NOTICES.md").open("a", encoding="utf-8") as out:
         out.write("\n\n酷狗版本补充：基于 Celine258 v0.8.0-beta.1 修改；运行时 Python " + sys.version.split()[0] +
                   "。新增 PyWinRT 3.2.1（MIT），用于 Windows 系统媒体与 OCR；许可保存在 licenses。" +
-                  "\nhttps://github.com/pywinrt/pywinrt/tree/v3.2.1\n酷狗版不安装 BetterNCM。上游归属记录仍予保留。\n")
+                  "\nhttps://github.com/pywinrt/pywinrt/tree/v3.2.1\n另包含 pefile 2023.2.7（MIT），只读解析酷狗歌词模块；许可保存在 licenses。" +
+                  "\nhttps://github.com/erocarrera/pefile\n酷狗版不安装 BetterNCM。上游归属记录仍予保留。\n")
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     info = dict(version=VERSION, base="v0.8.0-beta.1", source_commit=commit, python=sys.version.split()[0],
                 upstream_package_sha256=hashlib.sha256(args.upstream_package.read_bytes()).hexdigest(),
