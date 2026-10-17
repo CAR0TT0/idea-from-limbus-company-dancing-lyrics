@@ -11,7 +11,7 @@ import sys
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.0-beta.1-kugou.3"
+VERSION = "0.8.0-beta.1-kugou.4"
 
 
 def main():

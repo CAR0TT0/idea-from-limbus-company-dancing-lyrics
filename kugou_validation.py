@@ -26,10 +26,17 @@ class KugouSmokeCheck:
     def sample(self):
         player = self.panel.player
         doc = self.panel.overlay.document
-        self.samples.append(dict(seconds=round(time.monotonic() - self.started, 2), connected=player.connected,
+        now = time.monotonic()
+        position = player._timeline_clock.position(now)
+        snapshot = player._snapshot
+        expected = (min(player.duration, snapshot.position_ms + (min(.25, max(0, now - player._at)) * 1000 * snapshot.rate
+                        if player.playing else 0)) if snapshot and snapshot.mode == "native" else None)
+        self.samples.append(dict(seconds=round(now - self.started, 3), connected=player.connected,
                                  epoch=self.epoch,
                                  title=player.title, artist=player.artist, playing=player.playing,
-                                 position=round(player.position()), duration=player.duration,
+                                 position=round(position), duration=player.duration,
+                                 native_error_ms=round(abs(position - expected), 1) if expected is not None else None,
+                                 explicit_end_lines=sum(line.end_ms is not None for line in doc.lines) if doc else 0,
                                  mode=player._snapshot.mode if player._snapshot else "",
                                  lines=len(doc.lines) if doc else 0,
                                  words=sum(len(line.words) for line in doc.lines) if doc else 0,
@@ -65,9 +72,13 @@ class KugouSmokeCheck:
                   if a["connected"] and b["connected"] and a["playing"] and b["playing"]
                   and a["title"] == b["title"] and a["epoch"] == b["epoch"]]
         checks["continuousClockNeverRewinds"] = bool(steady) and all(b["position"] >= a["position"] for a, b in steady)
-        # Rounded sample times allow up to 10 ms measurement uncertainty.
+        # Timestamp and position use the same clock instant. Separate calls can
+        # falsely report a jump if Windows preempts this thread between them.
         checks["continuousClockNoPacketJumps"] = bool(steady) and all(
-            b["position"] - a["position"] <= (b["seconds"] - a["seconds"]) * 1150 + 15 for a, b in steady)
+            b["position"] - a["position"] <= (b["seconds"] - a["seconds"]) * 1150 + 3 for a, b in steady)
+        errors = [row["native_error_ms"] for row in self.samples if row["connected"] and row["playing"] and row["native_error_ms"] is not None]
+        if errors:
+            checks["nativeClockWithin350ms"] = max(errors) <= 350
         report = dict(passed=all(checks.values()), checks=checks, samples=self.samples,
                       steadyPairCount=len(steady),
                       note="Only real KuGou observations. Pause/seek/switch/minimize require separate observed evidence.")

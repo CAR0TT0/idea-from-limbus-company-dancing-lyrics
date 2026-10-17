@@ -123,7 +123,7 @@ class NativeTests(unittest.TestCase):
         memory.put(obj, struct.pack("<Q", 0))
         with self.assertRaises(ValueError):read_object(memory, obj, layout)
 
-    def test_reader_rejects_other_song_and_freezes_stale_playing_data(self):
+    def test_reader_rejects_other_song_and_freezes_buffering_without_disconnect(self):
         tick = [10.0]; reader = NativeLyricsReader(lambda: tick[0])
         reader.process = NS(pid=42);reader.objects = [(100, None)];reader.retry_at = 100
         row = dict(title="Song", artist="Singer", album="", duration_ms=60000, position_ms=1000, document=200)
@@ -131,7 +131,9 @@ class NativeTests(unittest.TestCase):
         with patch("kugou_native.read_object", return_value=row):
             self.assertEqual(reader.read(42, media)["mode"], "native")
             tick[0] += 2
-            self.assertIsNone(reader.read(42, media))
+            stalled=reader.read(42, media)
+            self.assertIsNotNone(stalled)
+            self.assertFalse(stalled["playing"])
             self.assertIsNone(reader.read(42, {**media, "title": "Different"}))
             self.assertIsNotNone(reader.read(42, {**media, "playing": False}))
 
@@ -228,7 +230,7 @@ class NativeTests(unittest.TestCase):
         root=Path(__file__).resolve().parents[1]
         for name in ("KUGOU.md","release/kugou-guide.txt"):
             text=(root/name).read_text(encoding="utf-8")
-            for phrase in ("kugou.3","原生歌词","最小化","接替酷狗桌面歌词","歌词时间范围","不承诺"):
+            for phrase in ("kugou.4","原生歌词","最小化","接替酷狗桌面歌词","歌词时间范围","不承诺"):
                 self.assertIn(phrase,text)
 
     def test_failed_helper_restores_its_lease_even_after_qprocess_loses_pid(self):

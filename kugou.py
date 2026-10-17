@@ -6,6 +6,7 @@ import json
 import logging
 import math
 import os
+import re
 from pathlib import Path
 import sys
 import threading
@@ -29,10 +30,15 @@ class KugouSnapshot:
     playing: bool
     rate: float = 1.0
     mode: str = "smtc"
+    lyric_hash: str = ""
+    native_title: str = ""
 
     @property
     def key(self):
-        return json.dumps([self.title, self.artist, self.album, self.duration_ms], ensure_ascii=False)
+        identity = [self.title, self.artist, self.album, self.duration_ms]
+        if self.lyric_hash:
+            identity.append(self.lyric_hash)
+        return json.dumps(identity, ensure_ascii=False)
 
 
 def parse_snapshot(data):
@@ -53,8 +59,14 @@ def parse_snapshot(data):
     duration = int(data["duration_ms"])
     if not duration:
         return None
+    lyric_hash, native_title = data.get("lyric_hash", ""), data.get("native_title", "")
+    if not isinstance(lyric_hash, str) or lyric_hash and not re.fullmatch(r"[0-9a-fA-F]{32}", lyric_hash):
+        raise ValueError("酷狗歌词标识无效")
+    if not isinstance(native_title, str) or len(native_title) > 1024 or any(c in native_title for c in "\x00\r\n"):
+        raise ValueError("酷狗原生曲名无效")
     return KugouSnapshot(data["title"].strip(), data["artist"].strip(), data["album"].strip(), duration,
-                         min(duration, data["position_ms"]), data["playing"], data.get("rate", 1), data["mode"])
+                         min(duration, data["position_ms"]), data["playing"], data.get("rate", 1), data["mode"],
+                         lyric_hash.casefold(), native_title)
 
 
 class KugouPlayer(NeteasePlayer):
@@ -93,6 +105,7 @@ class KugouPlayer(NeteasePlayer):
         self.overlay_visible = True
         self._command_at = 0
         self._reader_pid = 0
+        self._logged_channel = None
         self.process = QProcess(self)
         self.process.setProcessChannelMode(QProcess.ProcessChannelMode.SeparateChannels)
         self.process.readyReadStandardOutput.connect(self._read)
@@ -137,7 +150,7 @@ class KugouPlayer(NeteasePlayer):
         self._command_at = self._clock() + .5
 
     def _restore_native(self):
-        pid = int(self.process.processId()) or self._reader_pid
+        pid = self._reader_pid or int(self.process.processId())
         if pid:
             from kugou_windows import NativeVisibility
             NativeVisibility(owner_pid=pid).close()
@@ -160,11 +173,18 @@ class KugouPlayer(NeteasePlayer):
                 packet = json.loads(raw)
                 if not isinstance(packet, dict):
                     raise ValueError("酷狗信息无效")
+                worker_pid = packet.get("reader_pid")
+                if isinstance(worker_pid, int) and not isinstance(worker_pid, bool) and 0 < worker_pid <= 0xffffffff:
+                    self._reader_pid = worker_pid
                 self._last_packet = self._clock()
                 snapshot = parse_snapshot(packet.get("snapshot"))
                 message = packet.get("message", "")
                 if not isinstance(message, str) or len(message) > 2048:
                     raise ValueError("酷狗诊断信息无效")
+                channel = snapshot.mode if snapshot else "unavailable"
+                if channel != self._logged_channel:
+                    logging.info("KuGou channel=%s; status=%s", channel, message)
+                    self._logged_channel = channel
                 if snapshot is None:
                     self._handle_missing(message or "等待酷狗播放信息", packet.get("recoverable") is True)
                 else:

@@ -12,6 +12,7 @@ import re
 import struct
 import time
 import unicodedata
+from kugou_identity import titles_match
 
 
 LIMIT_MS = 86400000
@@ -80,6 +81,7 @@ class Layout:
     album: int
     length: int
     duration: int
+    lyric_hash: int | None = None
 
 
 def discover_layouts(path, base, read=None):
@@ -128,6 +130,8 @@ def discover_layouts(path, base, read=None):
         fields = {name: member_getter(code(exported("?Get" + name.capitalize() + "@LyricText@")),
                                       "address" if name in ("title", "artist", "album") else "int")
                   for name in ("title", "artist", "album", "length", "duration")}
+        hashes = [rva for name, rva in exports.items() if name.startswith("?GetHash@LyricText@")]
+        fields["lyric_hash"] = member_getter(code(hashes[0]), "address") if len(hashes) == 1 else None
         # Find complete integer field getters in executable sections, then find
         # their vtable references. Highlight must independently be a float getter.
         getters = {}
@@ -276,7 +280,10 @@ def read_object(memory, obj, layout):
         raise ValueError("Invalid lyric timeline")
     if memory.pointer(obj) != layout.vtable or memory.pointer(obj + layout.lyric) != lyric:
         raise ValueError("Lyric document changed while reading")
-    return dict(**fields, duration_ms=duration, position_ms=position, document=lyric)
+    lyric_hash = read_msvc_string(memory.read, lyric + layout.lyric_hash, wide=False) if layout.lyric_hash is not None else ""
+    if lyric_hash and not re.fullmatch(r"[0-9a-fA-F]{32}", lyric_hash):
+        lyric_hash = ""
+    return dict(**fields, duration_ms=duration, position_ms=position, document=lyric, lyric_hash=lyric_hash.casefold())
 
 
 class NativeLyricsReader:
@@ -316,7 +323,7 @@ class NativeLyricsReader:
         for obj, layout in self.objects:
             try:
                 row = read_object(self.process, obj, layout)
-                if media and (normalized(row["title"]) != normalized(media["title"]) or
+                if media and (not titles_match(row["title"], media["title"]) or
                               media["artist"] and normalized(row["artist"]) != normalized(media["artist"])):
                     continue
                 key = obj, row["document"]
@@ -326,9 +333,11 @@ class NativeLyricsReader:
                 self.previous[key] = row["position_ms"], changed_at, moved
                 if len(self.previous) > 512:
                     self.previous = dict(list(self.previous.items())[-128:])
-                if media and media["playing"] and previous and now - changed_at > 1.5:
-                    continue
-                row["playing"] = media["playing"] if media else moved and now - changed_at < .7
+                # A valid object can stop advancing while audio buffers. Keep
+                # its lyrics and freeze transport instead of falling back to OCR
+                # and clearing a minimized window. A changing sibling wins below.
+                row["playing"] = (media["playing"] and (previous is None or now - changed_at < .6)
+                                  if media else moved and now - changed_at < .7)
                 row["fresh"] = changed_at
                 rows.append(row)
             except (ValueError, UnicodeError, struct.error):
@@ -344,8 +353,10 @@ class NativeLyricsReader:
         # Multiple views may include a frozen main-window copy; prefer views
         # that actually changed most recently, never average stale positions.
         result = {key: selected[key] for key in ("title", "artist", "album", "duration_ms", "position_ms", "playing")}
+        result["native_title"] = selected["title"]
+        result["lyric_hash"] = selected.get("lyric_hash", "")
         if media:
-            for key in ("title", "artist", "album", "playing"):
+            for key in ("title", "artist", "album"):
                 result[key] = media[key]
         result.update(source="kugou", rate=media.get("rate", 1.0) if media else 1.0, mode="native")
         return result

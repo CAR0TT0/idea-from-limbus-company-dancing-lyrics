@@ -62,7 +62,9 @@ class Windows:
     def alive(self, pid):
         handle = self.kernel.OpenProcess(0x100000, False, pid)
         if not handle:
-            return False
+            # Access denied is not evidence that another helper is dead. A
+            # second instance must not repeatedly restore its leased window.
+            return c.get_last_error() != 87 and pid > 0
         try:
             return self.kernel.WaitForSingleObject(handle, 0) == 0x102
         finally:

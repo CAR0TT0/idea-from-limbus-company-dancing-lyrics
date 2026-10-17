@@ -12,6 +12,7 @@ import urllib.request
 import zlib
 
 from lrc import LyricDocument, LyricLine, TimedWord, parse_lrc, chinese_translation
+from kugou_identity import title_keys
 
 LIMIT = 2 * 1024 * 1024
 KRC_KEY = bytes((64, 71, 97, 119, 94, 50, 116, 71, 81, 54, 49, 45, 206, 210, 110, 105))
@@ -68,7 +69,9 @@ def parse_krc(text):
             line = body
         if len(line) > 2048 or len(rows) >= 5000:
             raise ValueError("歌词行数或文本长度过大")
-        rows.append(LyricLine(start, line, tuple(words)))
+        if start + duration > 86400000:
+            raise ValueError("KRC 结束时间无效")
+        rows.append(LyricLine(start, line, tuple(words), end_ms=start + duration))
     if not rows:
         raise ValueError("未找到 KRC 歌词")
     # KuGou's language tag stores translation rows by original line index.
@@ -120,6 +123,10 @@ def lyric_directories():
 def local_lyrics(snapshot, directories=None, cancelled=lambda: False):
     title = normalized(snapshot.title)
     artist = normalized(snapshot.artist)
+    expected_hash = getattr(snapshot, "lyric_hash", "")
+    titles = title_keys(snapshot.title)
+    if getattr(snapshot, "native_title", ""):
+        titles |= title_keys(snapshot.native_title)
     matches = []
     for folder in directories if directories is not None else lyric_directories():
         try:
@@ -129,9 +136,9 @@ def local_lyrics(snapshot, directories=None, cancelled=lambda: False):
                 if path.suffix.casefold() not in (".krc", ".lrc") or not path.is_file():
                     continue
                 stem = re.sub(r"[-_][0-9a-f]{32}(?:-\d+-[0-9a-f]+)?$", "", path.stem, flags=re.I)
-                valid_names = {title}
+                valid_names = set(titles)
                 if artist:
-                    valid_names = {normalized(snapshot.artist + snapshot.title), normalized(snapshot.title + snapshot.artist)}
+                    valid_names = {artist + value for value in titles} | {value + artist for value in titles}
                 if normalized(stem) in valid_names and 0 < path.stat().st_size <= LIMIT:
                     matches.append(path)
         except OSError:
@@ -142,7 +149,12 @@ def local_lyrics(snapshot, directories=None, cancelled=lambda: False):
             return None
         try:
             raw = path.read_bytes()
-            doc = parse_krc(decode_krc(raw)) if path.suffix.casefold() == ".krc" else parse_lrc(raw.decode("utf-8-sig"))
+            text = decode_krc(raw) if path.suffix.casefold() == ".krc" else raw.decode("utf-8-sig")
+            if expected_hash:
+                match = re.search(r"\[hash:([0-9a-f]{32})\]", text, re.I)
+                if match is None or match[1].casefold() != expected_hash:
+                    continue
+            doc = parse_krc(text) if path.suffix.casefold() == ".krc" else parse_lrc(text)
             return LyricResult(doc, "已同步酷狗本地歌词", "cache")
         except (OSError, UnicodeError, ValueError, zlib.error):
             continue
@@ -203,5 +215,11 @@ def load_song_lyrics(snapshot, cancelled=lambda: False, request=request_json, di
     if not isinstance(encoded, str) or len(encoded) > LIMIT:
         raise ValueError("酷狗歌词内容无效")
     raw = base64.b64decode(encoded, validate=True)
-    doc = parse_krc(decode_krc(raw))
+    text = decode_krc(raw)
+    expected_hash = getattr(snapshot, "lyric_hash", "")
+    if expected_hash:
+        match = re.search(r"\[hash:([0-9a-f]{32})\]", text, re.I)
+        if match is None or match[1].casefold() != expected_hash:
+            return LyricResult(None, "搜索结果与酷狗当前选用的歌词版本不同，等待对应缓存。")
+    doc = parse_krc(text)
     return LyricResult(doc, "已同步酷狗逐字歌词", "network")

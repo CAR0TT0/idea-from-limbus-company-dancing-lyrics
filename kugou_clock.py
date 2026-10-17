@@ -11,16 +11,23 @@ class PlaybackClock:
         self.raw = None
         self.raw_at = 0.0
         self.pending = None
+        self.coarse = True
 
     def position(self, now):
         if not self.initialized:
             return 0.0
         # A lost reader may coast briefly, but cannot advance indefinitely.
         end = min(now, self.last_good + 2.5)
+        if not self.coarse:
+            end = min(end, self.raw_at + .25)
         elapsed = max(0, end - self.at) * 1000 if self.playing else 0
         return min(self.duration, self.anchor + elapsed * self.speed)
 
     def observe(self, raw, now, duration, playing, rate, coarse, reset=False):
+        if self.initialized and coarse != self.coarse:
+            self.anchor, self.at = self.position(now), now
+            self.raw_at = now
+        self.coarse = coarse
         if reset or not self.initialized:
             self.initialized = True
             self.anchor = min(duration, raw + (500 if coarse and playing else 0))
@@ -38,7 +45,8 @@ class PlaybackClock:
         lower, upper = raw, raw + (1000 if coarse else 0)
         error = lower - current if current < lower else upper - current if current > upper else 0
         paused_seek = coarse and not playing and not self.playing and raw != self.raw
-        suspicious = abs(error) > 1500 or paused_seek
+        precise_paused_seek = not coarse and not playing and not self.playing and abs(raw - self.raw) > 100
+        suspicious = abs(error) > 1500 or paused_seek or precise_paused_seek
         if coarse and suspicious:
             pending = self.pending
             expected = (pending[0] + max(0, now - pending[1]) * 1000 * rate
@@ -72,6 +80,6 @@ class PlaybackClock:
             self.speed = rate + adjustment
         else:
             self.speed = 0
-            if not coarse:
-                self.anchor = raw
+            # A normal pause freezes the frame; confirmed seeks already use
+            # the reset branch above. Do not rewind over a sentence boundary.
         return True, False

@@ -88,11 +88,11 @@ class WindowReader:
         self.last = None
         self.last_advance = 0
 
-    def find(self):
+    def find(self, include_hidden=False):
         found = []
         @self.callback
         def visit(hwnd, _):
-            if not self.user.IsWindowVisible(hwnd):
+            if not include_hidden and not self.user.IsWindowVisible(hwnd):
                 return True
             title = ctypes.create_unicode_buffer(1024)
             self.user.GetWindowTextW(hwnd, title, 1024)
@@ -237,7 +237,8 @@ async def sample_channels(manager, native, windows, window=None):
             return None, "正在切歌，等待歌曲信息稳定。", window
         if media is None and after is not None:
             from kugou_native import normalized
-            if (normalized(native_snapshot["title"]) != normalized(after["title"]) or
+            from kugou_identity import titles_match
+            if (not titles_match(native_snapshot["title"], after["title"]) or
                     after["artist"] and normalized(native_snapshot["artist"]) != normalized(after["artist"])):
                 return None, "正在切歌，等待歌曲信息稳定。", window
             native_snapshot["playing"], native_snapshot["rate"] = after["playing"], after["rate"]
@@ -279,11 +280,11 @@ async def reader(once=False, parent_pid=None):
                 visibility.replace(windows.pid() if replace else None, replace)
                 recoverable = snapshot is None and (native.process is not None or message in (
                     "界面兼容模式：等待播放栏显示可识别的歌名和进度。", "正在切歌，等待歌曲信息稳定。"))
-                print(json.dumps(dict(snapshot=snapshot, message=message, recoverable=recoverable), ensure_ascii=False), flush=True)
+                print(json.dumps(dict(snapshot=snapshot, message=message, recoverable=recoverable, reader_pid=os.getpid()), ensure_ascii=False), flush=True)
             except Exception as error:
                 visibility.close()
                 print(json.dumps(dict(snapshot=None, message="读取暂不可用，将自动重试。", error=type(error).__name__,
-                                      recoverable=True), ensure_ascii=False), flush=True)
+                                      recoverable=True, reader_pid=os.getpid()), ensure_ascii=False), flush=True)
                 manager = None
             if once:
                 break
