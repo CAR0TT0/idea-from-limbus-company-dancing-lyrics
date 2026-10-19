@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-17",
+  "scope": "macos-kugou-source-prototype",
+  "version": "0.8.0-beta.1-kugou-macos.1",
+  "host": "Windows",
+  "reader": {
+    "tool": "media-control",
+    "license": "BSD-3-Clause",
+    "protocol_reference_commit": "3cfd5dcf78e7a619f7a42a3e2f29b06eb41027ea",
+    "command": ["get", "--micros", "--no-artwork"],
+    "external_binary_bundled": false,
+    "bundle_id": "com.kugou.mac.Music",
+    "bundle_reference": "https://itunes.apple.com/lookup?id=658741592&country=cn",
+    "minimum_fields": ["bundleIdentifier", "title", "playing", "durationMicros", "elapsedTimeMicros", "timestampEpochMicros"]
+  },
+  "validation": {
+    "unittest_run": 455,
+    "unittest_skipped": 1,
+    "unittest_failed": 0,
+    "new_adapter_tests": 24,
+    "extracted_source_tests": 24,
+    "windows_shared_smoke_checks": 75,
+    "windows_shared_smoke_passed": true,
+    "macos_app_built": false,
+    "native_macos_tested": false,
+    "live_kugou_mac_tested": false,
+    "background_minimized_verified": false,
+    "close_and_reopen_verified": false,
+    "finder_launch_verified": false,
+    "full_screen_spaces_verified": false,
+    "real_audio_capture_implemented": false,
+    "remote_ci_triggered": false
+  },
+  "client_window_commands": 0,
+  "client_playback_commands": 0,
+  "client_files_modified": false,
+  "client_version_modified": false,
+  "native_lyrics_replacement": false,
+  "windows_plugin_restarted": false
+}

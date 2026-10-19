@@ -1,0 +1,52 @@
+name: Build KuGou Mac experimental packages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install pinned dependencies
+        run: python -m pip install -r requirements-build.txt
+      - name: Test read-only adapter and shared renderer
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: >-
+          python -m unittest discover -s tests -p test_kugou_macos.py -v
+      - name: Check launchers and build native archive
+        run: |
+          for script in *酷狗Mac.command release/kugou-macos/*.command; do bash -n "$script"; done
+          python tools/build_macos.py --player kugou
+      - name: Verify extracted app with simulated playback
+        run: >-
+          python tools/verify_macos.py
+          artifacts/mac-release/dancing-lyrics-0.8.0-beta.1-kugou-macos.1-${{ matrix.arch }}.zip
+          --player kugou --report-dir artifacts/mac-verification
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kugou-macos-${{ matrix.arch }}
+          path: |
+            artifacts/mac-release/
+            artifacts/mac-verification/
+          if-no-files-found: warn

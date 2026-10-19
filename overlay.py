@@ -178,6 +178,7 @@ class LyricsOverlay(QWidget):
                      - 5 * (1 - min(1, age / (300 * 100 / self.prefs.entry_speed))))
             if self.prefs.animation_style != "classic" or self.prefs.scramble_exit:
                 drift = 0
+            drift *= self.prefs.motion_strength / 100
             painter.save()
             painter.setOpacity(item.opacity * self.prefs.opacity / 100)
             painter.translate(layout.center)

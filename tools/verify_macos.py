@@ -8,20 +8,20 @@ import subprocess
 import sys
 import tempfile
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from tools.package_macos import APP_BUNDLE, audit_archive
+from tools.package_macos import APP_BUNDLE, KUGOU_APP_BUNDLE, audit_archive
 
 
-def verify(archive, report_dir):
+def verify(archive, report_dir, player="netease"):
     if sys.platform != "darwin":
         raise RuntimeError("Mac 成品必须在原生 macOS 验证")
     archive, report_dir = Path(archive).resolve(), Path(report_dir).resolve()
     report_dir.mkdir(parents=True, exist_ok=True)
     report = {"passed": False, "archive": archive.name, "architecture": platform.machine(),
-              "audit": audit_archive(archive), "live_playback_verified": False}
+              "audit": audit_archive(archive, player), "live_playback_verified": False, "player": player}
     with tempfile.TemporaryDirectory(prefix="都市回响 中文 path ") as temporary:
         extracted = Path(temporary)
         subprocess.run(["ditto", "-x", "-k", str(archive), str(extracted)], check=True)
-        bundle = extracted / "CityEchoes" / APP_BUNDLE
+        bundle = extracted / "CityEchoes" / (KUGOU_APP_BUNDLE if player == "kugou" else APP_BUNDLE)
         executable = bundle / "Contents/MacOS/CityEchoes"
         actual = subprocess.check_output(["lipo", "-archs", str(executable)], text=True).strip()
         if actual != platform.machine():
@@ -45,5 +45,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("archive", type=Path)
     parser.add_argument("--report-dir", type=Path, required=True)
+    parser.add_argument("--player", choices=("netease", "kugou"), default="netease")
     args = parser.parse_args()
-    print(json.dumps(verify(args.archive, args.report_dir), ensure_ascii=False))
+    print(json.dumps(verify(args.archive, args.report_dir, args.player), ensure_ascii=False))
