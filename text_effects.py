@@ -325,20 +325,21 @@ class TextEffects:
         return surface.image
 
     def render(self, surface, prefs, seconds=0, energy=0, moving=False, states=None):
+        strength = prefs.motion_strength / 100
         if states is None and gradients.enabled(prefs):
-            states = [GlyphState(glyph.x, glyph.baseline - prefs.jump * energy *
+            states = [GlyphState(glyph.x, glyph.baseline - prefs.jump * strength * energy *
                                 (0.6 + 0.4 * math.sin(seconds * 8 - glyph.index * .6)) if moving else glyph.baseline,
-                                scale=1 + .04 * energy if moving else 1) for glyph in surface.glyphs]
+                                scale=1 + .04 * energy * strength if moving else 1) for glyph in surface.glyphs]
         if states is not None:
             return self._render_states(surface, prefs, states)
         surface.image.fill(Qt.GlobalColor.transparent)
         painter = QPainter(surface.image)
         painter.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform)
         painter.translate(-surface.origin)
-        poses = [(glyph.x, glyph.baseline - prefs.jump * energy *
+        poses = [(glyph.x, glyph.baseline - prefs.jump * strength * energy *
                   (0.6 + 0.4 * math.sin(seconds * 8 - glyph.index * .6)) if moving else glyph.baseline)
                  for glyph in surface.glyphs]
-        scale = 1 + .04 * energy if moving else 1
+        scale = 1 + .04 * energy * strength if moving else 1
 
         def place(index):
             painter.save()

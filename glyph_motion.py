@@ -115,7 +115,13 @@ def glyph_states(glyphs, prefs, item, position_ms, energy, pixels, seed=0, angle
                                  emphasis if opacity > 0 else 0)
         result.append(scramble_state(state, rank, count, item, position_ms, prefs, seed + glyph.language * 100003, pixels))
         rank += 1
-    return result
+    strength = prefs.motion_strength / 100
+    if strength == 1:
+        return result
+    return [replace(state, x=glyph.x + (state.x - glyph.x) * strength,
+                    y=glyph.baseline + (state.y - glyph.baseline) * strength,
+                    scale=1 + (state.scale - 1) * strength, rotation=state.rotation * strength)
+            for glyph, state in zip(glyphs, result)]
 
 
 def motion_bounds(ink, pixels, jump, style, angle=0, fall_distance=48, singing_sync=False):

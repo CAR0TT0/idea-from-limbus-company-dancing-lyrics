@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-19",
+  "revision": "0.8.0-beta.1-kugou.5",
+  "reported_client_label": "v20151",
+  "reported_window": "KuGou main window",
+  "friend_full_build_and_architecture": "unknown",
+  "regression": {
+    "frozen_main_view_rediscovers_later_desktop_view": true,
+    "synthetic_native_objects": true,
+    "motion_strength_scales_all_styles": true,
+    "zero_strength_preserves_fades_and_symbols": true,
+    "classic_fast_and_gradient_zero_motion": true,
+    "diagnostics_exclude_song_and_personal_fields": true
+  },
+  "automated_tests": {
+    "run": 464,
+    "skipped": 1,
+    "failed": 0
+  },
+  "windows_engine_smoke": {
+    "passed": true,
+    "checks": 75,
+    "synthetic_audio": true,
+    "initial_parallel_run_performance_failure": true,
+    "isolated_run_max_animation_p95_ms": 5.791
+  },
+  "packaged_windows_smoke": {
+    "passed": true,
+    "engine_checks": 75,
+    "actual_bat_entry": true,
+    "native_panel_visible": true,
+    "developer_path_removed": true,
+    "clean_machine": false,
+    "synthetic_audio": true,
+    "diagnostic_bat": true,
+    "exe_sha256": "9e6f62123b8bd715104071df732e6b64659d902b57fd5d514126d06f48e54c9d"
+  },
+  "live_kugou_running_during_revision_validation": false,
+  "friend_minimized_playback_verified": false,
+  "all_future_clients_supported": false
+}

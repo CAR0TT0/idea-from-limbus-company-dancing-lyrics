@@ -219,6 +219,17 @@ async def smtc_snapshot(manager):
                 playing=playing, rate=rate, mode="smtc")
 
 
+NATIVE_HINTS = {
+    "client_x86_unsupported": "此酷狗为 32 位，当前原生后台通道尚未适配",
+    "module_unsupported": "此酷狗歌词模块架构尚未适配",
+    "read_access_unavailable": "无法读取酷狗进程，请确认两者均以普通用户身份运行",
+    "module_unavailable": "未找到可读取的酷狗歌词模块",
+    "layout_unrecognized": "此酷狗版本的歌词结构尚未适配",
+    "no_matching_lyric_object": "未找到匹配当前歌曲的原生歌词对象，请开启酷狗桌面歌词",
+    "timeline_stalled": "原生歌词进度未推进，正在重新寻找后台歌词视图",
+}
+
+
 async def sample_channels(manager, native, windows, window=None):
     media = await smtc_snapshot(manager)
     if media is not None and media["duration_ms"] > 0:
@@ -242,7 +253,10 @@ async def sample_channels(manager, native, windows, window=None):
                     after["artist"] and normalized(native_snapshot["artist"]) != normalized(after["artist"])):
                 return None, "正在切歌，等待歌曲信息稳定。", window
             native_snapshot["playing"], native_snapshot["rate"] = after["playing"], after["rate"]
-        return native_snapshot, "原生歌词通道 · 支持最小化；毫秒进度，显示时长取歌词时间范围。", window
+        message = "原生歌词通道 · 支持最小化；毫秒进度，显示时长取歌词时间范围。"
+        if getattr(native, "status", "") == "timeline_stalled":
+            message += " " + NATIVE_HINTS["timeline_stalled"] + "。"
+        return native_snapshot, message, window
     window = window or WindowReader()
     snapshot, message = await window.read(timing_only=media is not None)
     if snapshot is not None and media is not None:
@@ -255,6 +269,9 @@ async def sample_channels(manager, native, windows, window=None):
         message = "界面兼容模式 · 约 1 秒精度，需还原主窗口；打开酷狗桌面歌词可尝试后台通道。"
     if snapshot is None and "还原" in message:
         message = "等待酷狗原生歌词数据：请打开酷狗自带的桌面歌词；不支持时请还原主窗口使用界面兼容模式。"
+    hint = NATIVE_HINTS.get(getattr(native, "status", "")) if pid else None
+    if hint:
+        message += " 后台诊断：" + hint + "。"
     return snapshot, message, window
 
 

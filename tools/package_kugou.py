@@ -11,7 +11,7 @@ import sys
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.0-beta.1-kugou.4"
+VERSION = "0.8.0-beta.1-kugou.5"
 
 
 def main():
@@ -42,7 +42,8 @@ def main():
         raise FileNotFoundError("Build output missing")
     for name, flags in {"启动酷狗联动.bat": "--kugou", "安装酷狗联动.bat": "--install-kugou",
                         "卸载酷狗联动.bat": "--uninstall-kugou", "本地音乐与演示.bat": "--demo",
-                        "诊断酷狗联动.bat": "--kugou --kugou-smoke"}.items():
+                        "诊断酷狗联动.bat": "--kugou --kugou-smoke",
+                        "导出兼容诊断.bat": '--kugou-diagnose --output "%~dp0kugou-diagnostic.json"'}.items():
         script = ('@echo off\nsetlocal\ncd /d "%~dp0"\n'
                   'if not exist "_internal" (\n  echo Extract the entire ZIP before running this file.\n  pause\n  exit /b 1\n)\n'
                   'if not exist "DancingLyrics-Kugou.exe" (\n  echo Application executable missing.\n  pause\n  exit /b 1\n)\n'

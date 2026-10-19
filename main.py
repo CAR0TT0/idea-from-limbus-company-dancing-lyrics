@@ -4,6 +4,10 @@ import os
 from pathlib import Path
 import sys
 
+if __name__ == "__main__" and sys.argv[1:2] == ["--kugou-diagnose"]:
+    from kugou_diagnostics import run
+    raise SystemExit(run(sys.argv[2:]))
+
 if __name__ == "__main__" and sys.argv[1:2] == ["--kugou-reader"]:
     from kugou_reader import run
     raise SystemExit(run("--once" in sys.argv))
@@ -129,7 +133,7 @@ def main():
 
     sys.excepthook = exception_hook
     store = SettingsStore(state_dir / ("smoke-settings.ini" if checking else "settings.ini"))
-    prefs = store.load()
+    prefs = store.load(kugou=args.kugou)
     app.setWindowIcon(app_icon(prefs.theme))
     if args.kugou:
         from kugou import KugouPlayer

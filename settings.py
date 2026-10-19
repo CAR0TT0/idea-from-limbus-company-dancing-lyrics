@@ -34,6 +34,7 @@ class Preferences:
     color: str = "#a9f4dc"
     opacity: int = 80
     jump: int = 10
+    motion_strength: int = 100
     angle: int = 12
     region: str = "edges"
     display_screen: str = "primary"
@@ -65,8 +66,10 @@ class SettingsStore:
         target.parent.mkdir(parents=True, exist_ok=True)
         self.store = QSettings(str(target), QSettings.Format.IniFormat)
 
-    def load(self) -> Preferences:
+    def load(self, *, kugou=False) -> Preferences:
         prefs = Preferences()
+        if kugou:
+            prefs.motion_strength = 30
         for key, default in asdict(prefs).items():
             value = self.store.value(key, default)
             try:
@@ -87,7 +90,7 @@ class SettingsStore:
 
 def normalize_preferences(prefs):
     for key, low, high in (("font_size", 18, 64), ("opacity", 10, 100),
-                           ("jump", 0, 30), ("angle", 0, 25),
+                           ("jump", 0, 30), ("angle", 0, 25), ("motion_strength", 0, 100),
                            ("delay_ms", -10000, 10000), ("volume", 0, 100), ("glow_strength", 0, 100),
                            ("entry_speed", 25, 300), ("exit_speed", 25, 300),
                            ("shake_frequency", 1, 15), ("fall_distance", 0, 128)):

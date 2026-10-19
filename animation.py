@@ -120,7 +120,7 @@ def build_layout(text: str, seed: int, regions: list[QRectF], occupied: list[QRe
     rng.shuffle(regions)
     fallback = None
     for region in regions:
-        angle = rng.uniform(-prefs.angle, prefs.angle)
+        angle = rng.uniform(-prefs.angle, prefs.angle) * prefs.motion_strength / 100
         for pixels in range(prefs.font_size, 9, -1):
             reserve = 50
             if prefs.animation_style != "classic":

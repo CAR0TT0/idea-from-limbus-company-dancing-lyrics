@@ -695,6 +695,7 @@ class ControlPanel(QWidget):
         self.spins = {}
         for name, minimum, maximum, suffix in (
             ("font_size", 18, 64, " px"), ("jump", 0, 30, " px"),
+            ("motion_strength", 0, 100, " %"),
             ("angle", 0, 25, " °"), ("opacity", 10, 100, " %"),
             ("delay_ms", -10000, 10000, " ms"),
         ):
@@ -818,7 +819,7 @@ class ControlPanel(QWidget):
                           ("文字大小", self.spins["font_size"]),
                           (self.color_label, self.color_button), ("发光强度", self.glow_field),
                           ("歌词透明度", self.spins["opacity"]), ("歌词语言", self.translation_checkbox), ("纯音乐显示", self.instrumental_checkbox))),
-            ("律动与同步", (("歌词动画", self.animation_combo),
+            ("律动与同步", (("总运动强度（0% 静止）", self.spins["motion_strength"]), ("歌词动画", self.animation_combo),
                           ("乱码退场", self.scramble_checkbox),
                           ("入场速度", self.parameter_fields["entry_speed"]), ("退场速度", self.parameter_fields["exit_speed"]),
                           ("抖动频率", self.parameter_fields["shake_frequency"]), ("跌落距离（32px 字号）", self.parameter_fields["fall_distance"]),

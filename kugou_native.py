@@ -84,13 +84,21 @@ class Layout:
     lyric_hash: int | None = None
 
 
+class NativeUnavailable(ValueError):
+    def __init__(self, code):
+        self.code = code
+        super().__init__(code)
+
+
 def discover_layouts(path, base, read=None):
     """Infer supported layouts from exports and code in a PE file, not offsets."""
     import pefile
     pe = pefile.PE(str(path), fast_load=True)
     try:
+        if pe.FILE_HEADER.Machine == 0x14c:
+            raise NativeUnavailable("client_x86_unsupported")
         if pe.FILE_HEADER.Machine != 0x8664 or pe.OPTIONAL_HEADER.SizeOfImage > 64 * 1024 * 1024:
-            raise ValueError("Unsupported KuGou lyric module")
+            raise NativeUnavailable("module_unsupported")
         pe.parse_data_directories(directories=[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_EXPORT"]])
         exports = {symbol.name.decode("ascii"): symbol.address for symbol in pe.DIRECTORY_ENTRY_EXPORT.symbols
                    if symbol.name}
@@ -293,6 +301,8 @@ class NativeLyricsReader:
         self.objects = []
         self.retry_at = 0
         self.previous = {}
+        self.status = "waiting"
+        self.module_version = ""
 
     def close(self):
         if self.process:
@@ -310,11 +320,18 @@ class NativeLyricsReader:
             if now < self.retry_at:
                 return None
             self.retry_at = now + 10
-            self.process = ReadOnlyProcess(pid)
+            try:
+                self.process = ReadOnlyProcess(pid)
+            except OSError:
+                self.status = "read_access_unavailable"
+                raise
             try:
                 base, path = self.process.ui_module()
+                self.module_version = path.parent.name if re.fullmatch(r"\d+(?:\.\d+){1,4}", path.parent.name) else ""
                 self.layouts = discover_layouts(path, base, self.process.read)
             except Exception as error:
+                self.status = (error.code if isinstance(error, NativeUnavailable) else
+                               "module_unavailable" if isinstance(error, (KeyError, OSError)) else "layout_unrecognized")
                 self.close()
                 raise ValueError("Native lyric layout unavailable") from error
             self.objects = self.process.objects(self.layouts)
@@ -343,11 +360,18 @@ class NativeLyricsReader:
             except (ValueError, UnicodeError, struct.error):
                 continue
         if not rows:
+            self.status = "no_matching_lyric_object"
             if now >= self.retry_at:
                 self.objects = self.process.objects(self.layouts)
-                self.previous.clear()
                 self.retry_at = self.clock() + 5
             return None
+        # The desktop lyric view can be created after the first scan. A valid
+        # main-window object may remain frozen after minimizing, so successful
+        # reads alone must not prevent rediscovery of a newly running view.
+        if now >= self.retry_at and not any(row["playing"] for row in rows) and (not media or media["playing"]):
+            self.objects = self.process.objects(self.layouts)
+            self.retry_at = self.clock() + 5
+        self.status = "ready" if any(row["playing"] for row in rows) or media and not media["playing"] else "timeline_stalled"
         rows.sort(key=lambda row: row["fresh"], reverse=True)
         selected = rows[0]
         # Multiple views may include a frozen main-window copy; prefer views
