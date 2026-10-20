@@ -341,6 +341,9 @@ class ControlPanel(QWidget):
         if self.startup_manager is None and self.source_short == "QQ 音乐" and sys.platform == "win32":
             from qqmusic_startup import QQStartupManager
             self.startup_manager = QQStartupManager()
+        if self.startup_manager is None and self.source_short == "酷狗" and sys.platform == "win32":
+            from kugou_startup import KugouStartupManager
+            self.startup_manager = KugouStartupManager()
         state = Path(store.store.fileName())
         self.presets = PresetStore(state.parent / ("smoke-effect-presets.json" if state.name.startswith("smoke-") else "effect-presets.json"))
         self._preset_id = None
@@ -589,7 +592,7 @@ class ControlPanel(QWidget):
         cache_body.addWidget(self.qq_cache_status)
         cache_buttons = QHBoxLayout()
         self.choose_qq_cache_button = QPushButton("选择歌词缓存目录")
-        self.choose_qq_cache_button.setAccessibleName("选择 QQ 音乐歌词缓存目录")
+        self.choose_qq_cache_button.setAccessibleName("选择 QQ 音乐歌词缓存目录" if self.source_short == "QQ 音乐" else f"选择{self.source_short}歌词缓存目录")
         self.choose_qq_cache_button.clicked.connect(self.choose_qq_cache)
         self.reset_qq_cache_button = QPushButton("自动查找缓存")
         self.reset_qq_cache_button.clicked.connect(lambda: self._set_qq_cache_directory(""))
@@ -599,15 +602,21 @@ class ControlPanel(QWidget):
         cache_body.addLayout(cache_buttons)
         self.qq_cache_controls.setVisible(hasattr(self.player, "configure_cache_directory"))
         lyrics_body.addWidget(self.qq_cache_controls)
+        if self.source_short == "酷狗" and hasattr(self.player, "configure_native_replacement"):
+            self.kugou_replace_checkbox = QCheckBox("接替酷狗桌面歌词")
+            self.kugou_replace_checkbox.setChecked(self.prefs.kugou_replace_native)
+            self.kugou_replace_checkbox.setToolTip("插件成功显示歌词后隐藏原生歌词窗口；关闭此项或退出插件会恢复。请保持酷狗的桌面歌词开关开启。")
+            self.kugou_replace_checkbox.toggled.connect(self._set_kugou_replacement)
+            lyrics_body.addWidget(self.kugou_replace_checkbox)
         self.analysis_label = label("音乐律动将在播放后开启。", "muted")
         lyrics_body.addWidget(self.analysis_label)
         body.addWidget(lyrics)
-        self.qq_startup_card, startup_body = card("QQ 音乐自动联动")
-        self.qq_startup_checkbox = QCheckBox("随 QQ 音乐启动")
-        self.qq_startup_checkbox.setAccessibleName("随 QQ 音乐启动")
-        self.qq_startup_checkbox.setToolTip("在 Windows 登录时启动后台监听；不会打开或控制 QQ 音乐。")
+        self.qq_startup_card, startup_body = card(f"{self.source_short}自动联动")
+        self.qq_startup_checkbox = QCheckBox("随 QQ 音乐启动" if self.source_short == "QQ 音乐" else f"随{self.source_short}启动")
+        self.qq_startup_checkbox.setAccessibleName("随 QQ 音乐启动" if self.source_short == "QQ 音乐" else f"随{self.source_short}启动")
+        self.qq_startup_checkbox.setToolTip(f"在 Windows 登录时启动后台监听；不会打开或控制{self.source_short}。")
         startup_body.addWidget(self.qq_startup_checkbox)
-        startup_hint = label("开启后，打开 QQ 音乐就自动显示歌词，设置面板收在托盘。\n"
+        startup_hint = label(f"开启后，打开{self.source_short}就自动显示歌词，设置面板收在托盘。\n"
                              "Windows 登录时运行后台监听；关闭开关可取消。", "muted")
         startup_hint.setWordWrap(True)
         startup_body.addWidget(startup_hint)
@@ -686,6 +695,7 @@ class ControlPanel(QWidget):
         self.spins = {}
         for name, minimum, maximum, suffix in (
             ("font_size", 18, 64, " px"), ("jump", 0, 30, " px"),
+            ("motion_strength", 0, 100, " %"),
             ("angle", 0, 25, " °"), ("opacity", 10, 100, " %"),
             ("delay_ms", -10000, 10000, " ms"),
         ):
@@ -809,7 +819,7 @@ class ControlPanel(QWidget):
                           ("文字大小", self.spins["font_size"]),
                           (self.color_label, self.color_button), ("发光强度", self.glow_field),
                           ("歌词透明度", self.spins["opacity"]), ("歌词语言", self.translation_checkbox), ("纯音乐显示", self.instrumental_checkbox))),
-            ("律动与同步", (("歌词动画", self.animation_combo),
+            ("律动与同步", (("总运动强度（0% 静止）", self.spins["motion_strength"]), ("歌词动画", self.animation_combo),
                           ("乱码退场", self.scramble_checkbox),
                           ("入场速度", self.parameter_fields["entry_speed"]), ("退场速度", self.parameter_fields["exit_speed"]),
                           ("抖动频率", self.parameter_fields["shake_frequency"]), ("跌落距离（32px 字号）", self.parameter_fields["fall_distance"]),
@@ -1099,9 +1109,16 @@ class ControlPanel(QWidget):
 
     def toggle_overlay(self):
         self.overlay.setVisible(not self.overlay.isVisible())
+        if hasattr(self.player, "set_overlay_visible"):
+            self.player.set_overlay_visible(self.overlay.isVisible())
         text = "隐藏歌词" if self.overlay.isVisible() else "显示歌词"
         self.visibility_button.setText(text)
         self.tray_visibility.setText(text)
+
+    def _set_kugou_replacement(self, enabled):
+        self.prefs.kugou_replace_native = enabled
+        self.store.save(self.prefs)
+        self.player.configure_native_replacement(enabled)
 
     def _volume_changed(self, value):
         self.prefs.volume = value
@@ -1357,6 +1374,11 @@ class ControlPanel(QWidget):
         return f"{seconds // 60:02d}:{seconds % 60:02d}"
 
     def choose_qq_cache(self):
+        if self.source_short == "酷狗":
+            path = QFileDialog.getExistingDirectory(self, "选择酷狗歌词缓存目录（Lyric）", self.prefs.kugou_cache_directory)
+            if path:
+                self._set_qq_cache_directory(path)
+            return
         path = QFileDialog.getExistingDirectory(self, "选择 QQ 音乐歌词缓存目录（QQMusicLyricNew）",
                                               self.prefs.qq_cache_directory)
         if path:
@@ -1364,6 +1386,11 @@ class ControlPanel(QWidget):
             self._set_qq_cache_directory(str(child) if child.is_dir() else path)
 
     def _set_qq_cache_directory(self, path):
+        if self.source_short == "酷狗":
+            self.prefs.kugou_cache_directory = path
+            self.player.configure_cache_directory(path)
+            self.store.save(self.prefs)
+            return
         self.prefs.qq_cache_directory = path
         self.store.save(self.prefs)
         self.player.configure_cache_directory(path)
@@ -1373,7 +1400,7 @@ class ControlPanel(QWidget):
             enabled = self.startup_manager.enabled()
             with QSignalBlocker(self.qq_startup_checkbox):
                 self.qq_startup_checkbox.setChecked(enabled)
-            self.qq_startup_status.setText("已开启 · 右键托盘图标可打开设置；手动退出后，重开 QQ 音乐再自动启动。"
+            self.qq_startup_status.setText(f"已开启 · 右键托盘图标可打开设置；手动退出后，重开 {self.source_short}再自动启动。"
                                            if enabled else "未开启 · 仍可手动使用启动入口。")
         except OSError as error:
             self.qq_startup_status.setText(f"无法读取自动启动设置：{error}")

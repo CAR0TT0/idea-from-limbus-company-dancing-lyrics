@@ -1,5 +1,8 @@
 # macOS 实验支持
 
+**使用酷狗音乐 Mac 版请看 [KUGOU-MACOS.md](KUGOU-MACOS.md)。**
+该版使用独立读取工具、设置目录和启动入口；下方已有下载链接是旧网易云 Mac 版，不能用于酷狗。
+
 本仓库在 Windows 主线基础上整合 [@qingyin-alice-zhong](https://github.com/qingyin-alice-zhong) 的
 [mac-version 分支](https://github.com/qingyin-alice-zhong/idea-from-limbus-company-dancing-lyrics/tree/mac-version)。
 参考提交固定为 `5109df2c99ee87ee6ad5370fed70fa5d880336a5`；原分支与主线没有共同提交历史，

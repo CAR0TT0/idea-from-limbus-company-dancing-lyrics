@@ -1,0 +1,115 @@
+{
+  "version": "0.8.0-beta.1-kugou.3",
+  "scope": "native_minimized_companion",
+  "date": "2026-10-17",
+  "kugou_version": "20.1.51.27967",
+  "clean_machine": false,
+  "simulated_live_data": false,
+  "unit_tests": {
+    "run": 415,
+    "skipped": 1
+  },
+  "exe_sha256": "0928d211e45074e460704c8f2c515c71c60cfbe4ea0f246f1bd304aeb7c2404d",
+  "native_layouts_inferred": 3,
+  "installation_client_writes": 0,
+  "process_memory_writes": 0,
+  "injected_modules": 0,
+  "packaged_native": {
+    "passed": true,
+    "checks": {
+      "coldStartMinimizedUsesNative": true,
+      "minimizedProgressAdvances": true,
+      "replacementHidesOnlyNativeWindow": true,
+      "hiddenNativeProgressAdvances": true,
+      "heartbeatLossRestoresNative": true,
+      "gracefulExitRestoresNative": true,
+      "parentTestActuallyHidWindow": true,
+      "parentExitRestoresNative": true,
+      "crashTestActuallyHidWindow": true,
+      "nextHelperRecoversDeadOwner": true
+    },
+    "packaged": true,
+    "clean_machine": false,
+    "playback_commands": 0,
+    "native_window_restored": true
+  },
+  "packaged_gui": {
+    "passed": true,
+    "checks": {
+      "mainRemainsMinimized": true,
+      "nativePanelVisible": true,
+      "guiWaitsForLyricsThenReplacesNative": true,
+      "realPlaybackReportPassed": true,
+      "nativeChannelObserved": true,
+      "exitRestoresNativeWindow": true
+    },
+    "clean_machine": false,
+    "developer_path_removed": true,
+    "actual_bat_entry": true
+  },
+  "source_playback": {
+    "passed": true,
+    "checks": {
+      "connected": true,
+      "realLyricsReceived": true,
+      "advancing": true,
+      "effectsKeepTransport": true,
+      "continuousClockNeverRewinds": true,
+      "continuousClockNoPacketJumps": true
+    },
+    "seconds": 45,
+    "steady_pair_count": 2717,
+    "max_lines": 22,
+    "max_words": 187,
+    "max_translations": 21
+  },
+  "packaged_playback": {
+    "passed": true,
+    "checks": {
+      "connected": true,
+      "realLyricsReceived": true,
+      "advancing": true,
+      "effectsKeepTransport": true,
+      "continuousClockNeverRewinds": true,
+      "continuousClockNoPacketJumps": true
+    },
+    "seconds": 45,
+    "steady_pair_count": 2723,
+    "max_lines": 22,
+    "max_words": 187,
+    "max_translations": 21
+  },
+  "source_engine": {
+    "passed": true,
+    "checks": 75
+  },
+  "packaged_engine": {
+    "passed": true,
+    "checks": 75
+  },
+  "real_controls": {
+    "pause_froze_native_position": true,
+    "paused_span_ms": 0,
+    "smtc_seek_accepted": true,
+    "smtc_seek_changed_position": false,
+    "ui_seek_delta_ms": -27974,
+    "ui_seek_target_ms": 109000,
+    "continued_after_minimize": true,
+    "native_hidden_progress_verified": true
+  },
+  "limitations": [
+    "lyric_time_range",
+    "future_private_layout_changes",
+    "desktop_lyric_module_required",
+    "second_machine_not_verified",
+    "client_upgrade_not_performed",
+    "final_gui_manual_song_switch_not_verified"
+  ],
+  "commands": [
+    "python -X utf8 -m unittest discover -s tests -q",
+    "python main.py --smoke --report-dir artifacts/kugou3-engine",
+    "python main.py --kugou --kugou-smoke --report-dir artifacts/kugou-native-source",
+    "python tools/validate_kugou_native.py --exe <extracted-exe> --output artifacts/kugou3-packaged-native.json",
+    "<extracted BAT> --kugou-smoke --report-dir <absolute-report-directory>"
+  ]
+}

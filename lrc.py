@@ -24,6 +24,7 @@ class LyricLine:
     words: tuple[TimedWord, ...] = ()
     translation: str = ""
     secondary_start: int = -1
+    end_ms: int | None = None
 
 
 @dataclass
@@ -137,6 +138,7 @@ class LyricTimeline:
         # A positive LRC offset advances timestamps; a positive UI delay postpones them.
         shift = delay_ms - document.offset_ms
         self.lines = [replace(line, start_ms=line.start_ms + shift,
+                              end_ms=line.end_ms + shift if line.end_ms is not None else None,
                               words=tuple(replace(word, start_ms=word.start_ms + shift, end_ms=word.end_ms + shift)
                                           for word in line.words)) for line in document.lines]
         self.starts = [line.start_ms for line in self.lines]
@@ -152,6 +154,16 @@ class LyricTimeline:
         boundary = following.start_ms if following else (duration or line.start_ms + 6000)
         if duration > 0:
             boundary = min(boundary, duration)
+        if line.end_ms is not None and line.end_ms > line.start_ms:
+            vocal_end = min(line.end_ms, boundary)
+            end = vocal_end + self.exit_duration
+            if following:
+                end = min(end, boundary + (self.exit_duration if following.text else 0))
+            if duration > 0:
+                end = min(end, duration)
+            entry = self.classic_entry if self.animation_style == "classic" else self.entry_duration
+            entry_end = line.start_ms + min(entry, max(0, vocal_end - line.start_ms) * .35)
+            return ActiveLine(index, line.text, line.start_ms, end, 1, entry_end, vocal_end, line.words, line.secondary_start)
         interval = max(0, boundary - line.start_ms)
         entry_end = line.start_ms + min(self.classic_entry if self.animation_style == "classic" else self.entry_duration, interval * .35)
         if following and following.text and boundary < (duration or float("inf")):
@@ -172,6 +184,15 @@ class LyricTimeline:
         for i in range(max(0, index - 1), index + 1):
             line = self.lines[i]
             if not line.text:
+                continue
+            if line.end_ms is not None and line.end_ms > line.start_ms:
+                item = self._animated_window(i, duration_ms)
+                if item.start_ms <= position_ms < item.end_ms:
+                    if self.animation_style == "classic" and not self.scramble_exit:
+                        opacity = min(1., (position_ms - item.start_ms) / max(1, item.entry_end_ms - item.start_ms),
+                                      (item.end_ms - position_ms) / max(1, item.end_ms - item.exit_start_ms))
+                        item = replace(item, opacity=max(0., opacity))
+                    active.append(item)
                 continue
             if self.animation_style != "classic" or self.scramble_exit:
                 item = self._animated_window(i, duration_ms)

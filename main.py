@@ -4,6 +4,18 @@ import os
 from pathlib import Path
 import sys
 
+if __name__ == "__main__" and sys.argv[1:2] == ["--kugou-diagnose"]:
+    from kugou_diagnostics import run
+    raise SystemExit(run(sys.argv[2:]))
+
+if __name__ == "__main__" and sys.argv[1:2] == ["--kugou-reader"]:
+    from kugou_reader import run
+    raise SystemExit(run("--once" in sys.argv))
+
+if __name__ == "__main__" and sys.argv[1:] == ["--watch-kugou"]:
+    from kugou_startup import run_watcher
+    raise SystemExit(run_watcher())
+
 # Login monitoring has no Qt/audio imports and never controls the music client.
 if __name__ == "__main__" and sys.argv[1:] == ["--watch-qqmusic"]:
     from qqmusic_startup import run_watcher
@@ -25,6 +37,8 @@ from app_info import APP_NAME, APP_VERSION, set_taskbar_identity
 def main():
     parser = argparse.ArgumentParser(description=f"{APP_NAME} · Windows 桌面音乐伴侣")
     installer = parser.add_mutually_exclusive_group()
+    installer.add_argument("--install-kugou", action="store_true", help="为酷狗版创建个人快捷方式")
+    installer.add_argument("--uninstall-kugou", action="store_true", help="移除酷狗版快捷方式与自动启动")
     installer.add_argument("--install-netease", action="store_true", help="打开网易云联动安装窗口")
     installer.add_argument("--uninstall-netease", action="store_true", help="打开网易云联动卸载窗口")
     installer.add_argument("--restore-netease", action="store_true", help="恢复本目录上次网易云联动安装")
@@ -39,6 +53,8 @@ def main():
     sources = parser.add_mutually_exclusive_group()
     sources.add_argument("--netease", action="store_true", help="接收网易云插件的播放和歌词数据")
     sources.add_argument("--qqmusic", action="store_true", help="只读跟随 Windows QQ 音乐播放和歌词")
+    sources.add_argument("--kugou", action="store_true", help="酷狗音乐独立联动，无需修改客户端")
+    parser.add_argument("--kugou-smoke", action="store_true", help="采集 45 秒真实酷狗联动验证并退出")
     parser.add_argument("--qqmusic-smoke", action="store_true", help="采集真实 QQ 音乐联动验证并退出")
     parser.add_argument("--background", action="store_true", help="联动模式启动到托盘")
     parser.add_argument("--netease-smoke", action="store_true", help="采集 45 秒真实网易云联动验证并退出")
@@ -52,13 +68,21 @@ def main():
     args = parser.parse_args()
     if args.qqmusic_smoke and not args.qqmusic:
         parser.error("--qqmusic-smoke 需要 --qqmusic")
-    external = args.netease or args.qqmusic
-    checking = args.smoke or args.netease_smoke or args.qqmusic_smoke
+    if args.install_kugou or args.uninstall_kugou:
+        from kugou_install import run_installer
+        return run_installer(app_directory(), args.uninstall_kugou)
+    if args.kugou_smoke and not args.kugou:
+        parser.error("--kugou-smoke 需要 --kugou")
+    if getattr(sys, "frozen", False) and not sys.argv[1:]:
+        args.kugou = True
+    external = args.netease or args.qqmusic or args.kugou
+    checking = args.smoke or args.netease_smoke or args.qqmusic_smoke or args.kugou_smoke
     if args.install_netease or args.uninstall_netease or args.restore_netease:
         from installer_ui import run_installer
         from settings import resource_path
         return run_installer(args, app_directory(), resource_path("plugins/netease"))
-    state_dir = app_directory() / ".state"
+    state_dir = (Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "DancingLyrics-Kugou" / ".state"
+                 if args.kugou else app_directory() / ".state")
     state_dir.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(filename=state_dir / "app.log", level=logging.INFO,
                         format="%(asctime)s %(levelname)s %(message)s", encoding="utf-8")
@@ -76,6 +100,18 @@ def main():
     app.setQuitOnLastWindowClosed(False)
 
     qq_mutex = show_event = None
+    if args.kugou and not checking and sys.platform == "win32":
+        from kugou_startup import NamedMutex, PanelSignal, object_name
+        show_event = PanelSignal()
+        qq_mutex = NamedMutex(object_name("app"))
+        if not qq_mutex.acquired:
+            if not args.background:
+                show_event.signal()
+            show_event.close()
+            qq_mutex.close()
+            return 0
+        app.aboutToQuit.connect(qq_mutex.close)
+        app.aboutToQuit.connect(show_event.close)
     if args.qqmusic and not checking and sys.platform == "win32":
         from qqmusic_startup import NamedMutex, ShowPanelEvent, object_name
         show_event = ShowPanelEvent()
@@ -97,9 +133,15 @@ def main():
 
     sys.excepthook = exception_hook
     store = SettingsStore(state_dir / ("smoke-settings.ini" if checking else "settings.ini"))
-    prefs = store.load()
+    prefs = store.load(kugou=args.kugou)
     app.setWindowIcon(app_icon(prefs.theme))
-    if args.qqmusic:
+    if args.kugou:
+        from kugou import KugouPlayer
+        from process_audio import ProcessAudio, window_process_pid
+        player = KugouPlayer(cache_directory=prefs.kugou_cache_directory, replace_native=prefs.kugou_replace_native)
+        audio = ProcessAudio(player, pid_finder=lambda: window_process_pid("kugou.exe"))
+        app.aboutToQuit.connect(audio.close)
+    elif args.qqmusic:
         from qqmusic import QQMusicPlayer
         from process_audio import ProcessAudio, qqmusic_pid
         player = QQMusicPlayer(cache_directory=prefs.qq_cache_directory)
@@ -126,8 +168,9 @@ def main():
     fonts = FontLibrary(state_dir / ("smoke-fonts" if checking else "fonts"))
     panel = ControlPanel(player, overlay, prefs, store, font_library=fonts)
     if qq_mutex is not None:
-        from qqmusic_startup import mark_panel
-        mark_panel(int(panel.winId()))
+        if args.qqmusic:
+            from qqmusic_startup import mark_panel
+            mark_panel(int(panel.winId()))
         show_timer = QTimer(panel)
         show_timer.setInterval(100)
         show_timer.timeout.connect(lambda: panel.show_panel() if show_event.consume() else None)
@@ -143,7 +186,10 @@ def main():
     if not (external and args.background and panel.tray_available):
         panel.show()
     logging.info("Control panel initialized; Qt visible=%s", panel.isVisible())
-    if args.qqmusic_smoke or (args.qqmusic and args.smoke):
+    if args.kugou_smoke or (args.kugou and args.smoke):
+        from kugou_validation import KugouSmokeCheck
+        check = KugouSmokeCheck(app, panel, args.report_dir)
+    elif args.qqmusic_smoke or (args.qqmusic and args.smoke):
         from qqmusic_validation import QQMusicSmokeCheck
         check = QQMusicSmokeCheck(app, panel, args.report_dir)
     elif args.netease_smoke and args.netease:

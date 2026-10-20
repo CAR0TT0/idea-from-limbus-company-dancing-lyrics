@@ -1,0 +1,116 @@
+{
+  "version": "0.8.0-beta.1-kugou.4",
+  "date": "2026-10-17",
+  "client": "20.1.51.27967",
+  "clean_machine": false,
+  "repro": {
+    "client_title_has_chinese_translation_alias": true,
+    "native_title_omits_alias": true,
+    "old_native_channel_rejected_current_song": true,
+    "krc_line_end_was_discarded": true,
+    "observed_krc_lines": 50,
+    "observed_lines_over_6s": 3,
+    "observed_gaps_over_1s": 2
+  },
+  "fixes": [
+    "conservative_translation_alias",
+    "native_lyric_hash_bound_cache",
+    "explicit_krc_line_end",
+    "buffering_freezes_without_clearing",
+    "precise_clock_250ms_coast_bound",
+    "actual_reader_pid_handshake",
+    "access_denied_is_not_dead_process"
+  ],
+  "source_tray": {
+    "passed": true,
+    "checks": {
+      "coldStartMinimizedUsesNative": true,
+      "minimizedProgressAdvances": true,
+      "replacementHidesOnlyNativeWindow": true,
+      "hiddenNativeProgressAdvances": true,
+      "heartbeatLossRestoresNative": true,
+      "gracefulExitRestoresNative": true,
+      "parentTestActuallyHidWindow": true,
+      "parentExitRestoresNative": true,
+      "crashTestActuallyHidWindow": true,
+      "nextHelperRecoversDeadOwner": true
+    },
+    "packaged": false,
+    "clean_machine": false,
+    "playback_commands": 0,
+    "native_window_restored": true,
+    "tray_hidden": true
+  },
+  "packaged_tray": {
+    "passed": true,
+    "checks": {
+      "coldStartMinimizedUsesNative": true,
+      "minimizedProgressAdvances": true,
+      "replacementHidesOnlyNativeWindow": true,
+      "hiddenNativeProgressAdvances": true,
+      "heartbeatLossRestoresNative": true,
+      "gracefulExitRestoresNative": true,
+      "parentTestActuallyHidWindow": true,
+      "parentExitRestoresNative": true,
+      "crashTestActuallyHidWindow": true,
+      "nextHelperRecoversDeadOwner": true
+    },
+    "packaged": true,
+    "clean_machine": false,
+    "playback_commands": 0,
+    "native_window_restored": true,
+    "tray_hidden": true
+  },
+  "launcher": {
+    "passed": true,
+    "checks": {
+      "nativePanelVisible": true,
+      "replacementWhileTrayHidden": true,
+      "replacementWhileMinimized": true,
+      "realPlaybackReportPassed": true,
+      "nativeChannelThroughout": true,
+      "realKrcEndTimesLoaded": true,
+      "exitRestoresNativeWindow": true
+    },
+    "clean_machine": false,
+    "developer_path_removed": true,
+    "actual_bat_entry": true
+  },
+  "live": {
+    "passed": true,
+    "checks": {
+      "connected": true,
+      "realLyricsReceived": true,
+      "advancing": true,
+      "effectsKeepTransport": true,
+      "continuousClockNeverRewinds": true,
+      "continuousClockNoPacketJumps": true,
+      "nativeClockWithin350ms": true
+    },
+    "seconds": 45,
+    "steady_pair_count": 2714,
+    "samples": 2797,
+    "max_native_clock_error_ms": 50.5,
+    "max_lines": 50,
+    "max_words": 476,
+    "max_translations": 49,
+    "max_explicit_end_lines": 50
+  },
+  "engine": {
+    "source_passed": true,
+    "packaged_passed": true,
+    "checks_each": 75
+  },
+  "tests": {
+    "run": 431,
+    "skipped": 1
+  },
+  "exe_sha256": "7b672662f946590b3cc0515d8e12062c48ffdab0d97c93c229122ec1ca071719",
+  "limitations": [
+    "future_private_layout_changes",
+    "desktop_lyric_module_required",
+    "lyric_time_range_not_audio_duration",
+    "audio_phase_not_measured_by_microphone",
+    "second_machine_not_verified"
+  ]
+}
