@@ -15,7 +15,7 @@ Windows 请按播放器选择独立压缩包：
 
 | 使用的播放器 | 下载 | 使用入口 |
 | --- | --- | --- |
-| 酷狗音乐 | [下载酷狗修复版 ZIP](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.8.0-beta.2-kugou.1/dancing-lyrics-0.8.0-beta.2-kugou.1-windows-x64.zip) | 开启酷狗桌面歌词，双击“启动酷狗联动.bat” |
+| 酷狗音乐 | [下载酷狗音乐版 ZIP](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.8.0-beta.2-kugou.1/dancing-lyrics-0.8.0-beta.2-kugou.1-windows-x64.zip) | 开启酷狗桌面歌词，双击“启动酷狗联动.bat” |
 | QQ 音乐 | [下载 QQ 音乐版 ZIP](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.8.0-beta.2/dancing-lyrics-0.8.0-beta.2-qqmusic-windows-x64.zip) | 打开 QQ 音乐，双击“启动QQ音乐联动.bat” |
 | 网易云音乐 | [下载网易云音乐版 ZIP](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.8.0-beta.2/dancing-lyrics-0.8.0-beta.2-netease-windows-x64.zip) | 首次安装联动，之后从网易云播放栏打开 |
 
