@@ -1,5 +1,7 @@
 """Record actual KuGou data, with explicit failed and unobserved checks."""
 import json
+import ctypes
+from ctypes import wintypes
 from pathlib import Path
 import time
 from PySide6.QtCore import QTimer
@@ -13,6 +15,11 @@ class KugouSmokeCheck:
         self.started = time.monotonic()
         self.samples = []
         self.effect_check = None
+        from kugou_windows import Windows
+        self.windows = Windows()
+        self.windows.user.IsIconic.argtypes = [wintypes.HWND]
+        self._window_at = 0
+        self._main_state = (False, False)
         self.epoch = 0
         self.player_epoch_connection = panel.player.discontinuity.connect(self._discontinuity)
         self.timer = QTimer(panel)
@@ -27,6 +34,11 @@ class KugouSmokeCheck:
         player = self.panel.player
         doc = self.panel.overlay.document
         now = time.monotonic()
+        if now >= self._window_at:
+            mains = [h for h, _, lyric in self.windows.windows() if not lyric]
+            self._main_state = (any(self.windows.user.IsWindowVisible(h) for h in mains),
+                                any(self.windows.user.IsIconic(h) for h in mains))
+            self._window_at = now + .5
         position = player._timeline_clock.position(now)
         snapshot = player._snapshot
         expected = (min(player.duration, snapshot.position_ms + (min(.25, max(0, now - player._at)) * 1000 * snapshot.rate
@@ -38,6 +50,7 @@ class KugouSmokeCheck:
                                  native_error_ms=round(abs(position - expected), 1) if expected is not None else None,
                                  explicit_end_lines=sum(line.end_ms is not None for line in doc.lines) if doc else 0,
                                  mode=player._snapshot.mode if player._snapshot else "",
+                                 main_visible=self._main_state[0], main_minimized=self._main_state[1],
                                  lines=len(doc.lines) if doc else 0,
                                  words=sum(len(line.words) for line in doc.lines) if doc else 0,
                                  translations=sum(bool(line.translation) for line in doc.lines) if doc else 0,
@@ -64,6 +77,7 @@ class KugouSmokeCheck:
         self.panel.show_effects()
         self.panel.grab().save(str(self.directory / "kugou-effects.png"))
         checks = dict(connected=any(row["connected"] for row in self.samples),
+                      nativePanelVisible=bool(self.windows.user.IsWindowVisible(int(self.panel.winId()))),
                       realLyricsReceived=any(row["lines"] for row in self.samples),
                       advancing=any(b["position"] > a["position"] for a, b in zip(self.samples, self.samples[1:])
                                     if a["title"] == b["title"] and a["playing"] and b["playing"]),
@@ -79,6 +93,12 @@ class KugouSmokeCheck:
         errors = [row["native_error_ms"] for row in self.samples if row["connected"] and row["playing"] and row["native_error_ms"] is not None]
         if errors:
             checks["nativeClockWithin350ms"] = max(errors) <= 350
+        background = [row for row in self.samples if row['seconds'] >= 8 and (row['main_minimized'] or not row['main_visible'])]
+        if background:
+            checks['backgroundConnected'] = sum(row['connected'] for row in background) >= len(background)*.95
+            checks['backgroundChannelIndependentOfWindow'] = all(row['mode'] in ('native','smtc') for row in background if row['connected'])
+            checks['backgroundLyricsReceived'] = any(row['lines'] for row in background)
+            checks['backgroundProgressAdvances'] = any(b['position'] > a['position'] for a,b in zip(background,background[1:]) if a['epoch']==b['epoch'] and a['playing'] and b['playing'])
         report = dict(passed=all(checks.values()), checks=checks, samples=self.samples,
                       steadyPairCount=len(steady),
                       note="Only real KuGou observations. Pause/seek/switch/minimize require separate observed evidence.")

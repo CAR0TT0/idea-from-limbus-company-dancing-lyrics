@@ -425,7 +425,7 @@ class ControlPanel(QWidget):
         brand.addWidget(label(APP_NAME, "brand"))
         body.addLayout(brand)
         self.creator_label = label(CREATOR.replace("：", "：\n", 1), "creator")
-        self.version_label = label(f"版本 {APP_VERSION}", "version")
+        self.version_label = label(f"版本 {getattr(self.player, 'app_version', APP_VERSION)}", "version")
         body.addWidget(self.creator_label)
         body.addWidget(self.version_label)
         body.addSpacing(20)

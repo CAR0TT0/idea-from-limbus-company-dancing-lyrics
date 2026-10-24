@@ -31,7 +31,7 @@ from overlay import LyricsOverlay
 from player import MusicPlayer
 from settings import SettingsStore, app_directory, DEFAULT_FONT_FAMILY
 from fonts import FontLibrary
-from app_info import APP_NAME, APP_VERSION, set_taskbar_identity
+from app_info import APP_NAME, APP_VERSION, KUGOU_VERSION, kugou_default_mode, set_taskbar_identity
 
 
 def main():
@@ -73,7 +73,7 @@ def main():
         return run_installer(app_directory(), args.uninstall_kugou)
     if args.kugou_smoke and not args.kugou:
         parser.error("--kugou-smoke 需要 --kugou")
-    if getattr(sys, "frozen", False) and not sys.argv[1:]:
+    if kugou_default_mode(sys.executable, getattr(sys, "frozen", False), sys.argv[1:]):
         args.kugou = True
     external = args.netease or args.qqmusic or args.kugou
     checking = args.smoke or args.netease_smoke or args.qqmusic_smoke or args.kugou_smoke
@@ -92,7 +92,7 @@ def main():
         logging.warning("Windows taskbar identity could not be assigned")
     app = QApplication(sys.argv[:1])
     app.setApplicationName(APP_NAME)
-    app.setApplicationVersion(APP_VERSION)
+    app.setApplicationVersion(KUGOU_VERSION if args.kugou else APP_VERSION)
     app.setOrganizationName("FloatingLyrics")
     app.setWindowIcon(app_icon())
     app.setStyle("Fusion")

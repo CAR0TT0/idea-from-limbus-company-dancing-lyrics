@@ -3,7 +3,7 @@
 酷狗音乐 **Mac 源码测试版**见 [KUGOU-MACOS.md](KUGOU-MACOS.md)：安装时自动识别芯片，
 复用当前歌词效果；尚未生成 Mac 成品或完成真机播放验收。下方旧网易云 Mac 下载不适用于酷狗。
 
-让歌词在桌面随音乐跳动。Windows 支持网易云与 QQ 音乐联动、逐字动画、字体效果、预设及主题切换。
+让歌词在桌面随音乐跳动。Windows 支持网易云、QQ 音乐与酷狗音乐联动、逐字动画、字体效果、预设及主题切换。
 
 ![网易云联动与桌面歌词实机演示](docs/images/lyrics-demo.gif)
 
@@ -15,10 +15,13 @@ Windows 请按播放器选择独立压缩包：
 
 | 使用的播放器 | 下载 | 使用入口 |
 | --- | --- | --- |
+| 酷狗音乐 | [下载酷狗修复版 ZIP](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.8.0-beta.1-kugou.6/dancing-lyrics-0.8.0-beta.1-kugou.6-windows-x64.zip) | 开启酷狗桌面歌词，双击“启动酷狗联动.bat” |
 | QQ 音乐 | [下载 QQ 音乐版 ZIP](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.8.0-beta.1/dancing-lyrics-0.8.0-beta.1-qqmusic-windows-x64.zip) | 打开 QQ 音乐，双击“启动QQ音乐联动.bat” |
 | 网易云音乐 | [下载网易云音乐版 ZIP](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.8.0-beta.1/dancing-lyrics-0.8.0-beta.1-netease-windows-x64.zip) | 首次安装联动，之后从网易云播放栏打开 |
 
-两份包使用不同解压目录，入口与说明各自独立，均内置运行环境。旧通用包升级时，先退出歌词程序，将旧 `.state` 整个复制到对应新目录；网易云版还需退出网易云并重新安装联动以更新路径。同一时间只运行一个歌词实例。
+各播放器使用不同解压目录，入口与说明各自独立，均内置运行环境。QQ／网易云旧通用包升级时，先退出歌词程序，将旧 `.state` 整个复制到对应新目录；网易云版还需退出网易云并重新安装联动以更新路径。同一时间只运行一个歌词实例。
+
+**酷狗音乐修复版**：完整解压 → 酷狗播放歌曲并开启桌面歌词 → 双击“启动酷狗联动.bat”。显示“原生歌词通道”或“系统媒体接口”后可最小化酷狗。本版修复 `Mili`／`Mili（ミリー）` 等别名导致的后台断连；未知结构仍会回退到需展开窗口的界面兼容模式，不承诺所有客户端后台可用。可选安装个人快捷方式及开启“随酷狗启动”；升级保留 `%LOCALAPPDATA%\DancingLyrics-Kugou\.state`，移动后需重新设置自动启动。详见 [酷狗安装与后台使用说明](KUGOU.md)。基于 [CAR0TT0 的 PR #4](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/pull/4) 继续修复，保留作者贡献。网易云与 QQ 的现有下载保持原版本。
 
 **[下载 Mac 实验版](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/tag/v0.6.0-beta.2-macos.1)**（内置 Python）
 

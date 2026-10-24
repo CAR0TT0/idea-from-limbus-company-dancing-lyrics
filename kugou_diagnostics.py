@@ -3,12 +3,13 @@ import asyncio
 import json
 from pathlib import Path
 import platform
+from app_info import KUGOU_VERSION
 
 
 def summarize(snapshot, message, native, rows, windows):
     return {
         "schema": 1,
-        "adapter_revision": "kugou.5",
+        "adapter_revision": KUGOU_VERSION.rsplit("-", 1)[-1],
         "windows_version": platform.version(),
         "client_version_directory": native.module_version,
         "native_status": native.status,

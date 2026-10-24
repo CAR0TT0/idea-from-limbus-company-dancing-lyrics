@@ -18,6 +18,7 @@ from kugou_lyrics import LyricResult, load_song_lyrics
 from kugou_reader import is_kugou
 from kugou_clock import PlaybackClock
 from settings import resource_path
+from app_info import KUGOU_VERSION
 
 
 @dataclass(frozen=True)
@@ -70,6 +71,7 @@ def parse_snapshot(data):
 
 
 class KugouPlayer(NeteasePlayer):
+    app_version = KUGOU_VERSION
     source_id = "kugou"
     source_name = "酷狗音乐"
     source_short = "酷狗"
