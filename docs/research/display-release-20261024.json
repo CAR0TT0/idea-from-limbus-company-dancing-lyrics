@@ -1,0 +1,619 @@
+{
+  "date": "2026-10-24",
+  "passed": true,
+  "runtime_source_commit": "469bffed5a46abb691fae1e96e34f2d8b1dcfc76",
+  "versions": {
+    "shared": "0.8.0-beta.2",
+    "kugou": "0.8.0-beta.2-kugou.1"
+  },
+  "automatic_tests": {
+    "runtime_count": 491,
+    "full_delivery_count": 492,
+    "passed": true
+  },
+  "archives": [
+    {
+      "player": "netease",
+      "version": "0.8.0-beta.2",
+      "name": "dancing-lyrics-0.8.0-beta.2-netease-windows-x64.zip",
+      "bytes": 71952888,
+      "sha256": "c095287714bb7a12d196cacfb9a941ccee78e92a8fb21e14136b73c61f310979",
+      "exe_sha256": "d38c0045e3991574e49a4681e86f661fc6b2593129ab5904151572640d94bfef",
+      "entries": 327,
+      "crc": true,
+      "qt_runtime_present": true,
+      "private_files_excluded": true,
+      "extra_runtime_licenses": true
+    },
+    {
+      "player": "qqmusic",
+      "version": "0.8.0-beta.2",
+      "name": "dancing-lyrics-0.8.0-beta.2-qqmusic-windows-x64.zip",
+      "bytes": 71945142,
+      "sha256": "ccbb6cd1f1eed49bde9d8bc8ab33fe18da24fad40e23c702bc08bd6fd1ad3dbd",
+      "exe_sha256": "d38c0045e3991574e49a4681e86f661fc6b2593129ab5904151572640d94bfef",
+      "entries": 322,
+      "crc": true,
+      "qt_runtime_present": true,
+      "private_files_excluded": true,
+      "extra_runtime_licenses": true
+    },
+    {
+      "player": "kugou",
+      "version": "0.8.0-beta.2-kugou.1",
+      "name": "dancing-lyrics-0.8.0-beta.2-kugou.1-windows-x64.zip",
+      "bytes": 71954702,
+      "sha256": "210beb5d2d880c34f3cac6078327338ca598489de5cab6bb1601786acbcbbd59",
+      "exe_sha256": "d38c0045e3991574e49a4681e86f661fc6b2593129ab5904151572640d94bfef",
+      "entries": 330,
+      "crc": true,
+      "qt_runtime_present": true,
+      "private_files_excluded": true,
+      "extra_runtime_licenses": true
+    }
+  ],
+  "same_engine": true,
+  "publications": [
+    {
+      "url": "https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/tag/v0.8.0-beta.2-kugou.1",
+      "tag": "v0.8.0-beta.2-kugou.1",
+      "commit": "469bffed5a46abb691fae1e96e34f2d8b1dcfc76",
+      "prerelease": true,
+      "assets": [
+        {
+          "name": "dancing-lyrics-0.8.0-beta.2-kugou.1-windows-x64.zip",
+          "size": 71954702,
+          "digest": "sha256:210beb5d2d880c34f3cac6078327338ca598489de5cab6bb1601786acbcbbd59",
+          "url": "https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.8.0-beta.2-kugou.1/dancing-lyrics-0.8.0-beta.2-kugou.1-windows-x64.zip"
+        },
+        {
+          "name": "dancing-lyrics-0.8.0-beta.2-kugou.1-windows-x64.zip.sha256",
+          "size": 119,
+          "digest": "sha256:10493663d3946f811fd13b07f59e6abf37f16c144356de86597a78166325e5be",
+          "url": "https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.8.0-beta.2-kugou.1/dancing-lyrics-0.8.0-beta.2-kugou.1-windows-x64.zip.sha256"
+        }
+      ]
+    },
+    {
+      "url": "https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/tag/v0.8.0-beta.2",
+      "tag": "v0.8.0-beta.2",
+      "commit": "469bffed5a46abb691fae1e96e34f2d8b1dcfc76",
+      "prerelease": true,
+      "assets": [
+        {
+          "name": "dancing-lyrics-0.8.0-beta.2-netease-windows-x64.zip",
+          "size": 71952888,
+          "digest": "sha256:c095287714bb7a12d196cacfb9a941ccee78e92a8fb21e14136b73c61f310979",
+          "url": "https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.8.0-beta.2/dancing-lyrics-0.8.0-beta.2-netease-windows-x64.zip"
+        },
+        {
+          "name": "dancing-lyrics-0.8.0-beta.2-netease-windows-x64.zip.sha256",
+          "size": 119,
+          "digest": "sha256:6d3bd87a02b8a250327768e9edd62bd1a6e2a822585936402ce77557babd76f6",
+          "url": "https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.8.0-beta.2/dancing-lyrics-0.8.0-beta.2-netease-windows-x64.zip.sha256"
+        },
+        {
+          "name": "dancing-lyrics-0.8.0-beta.2-qqmusic-windows-x64.zip",
+          "size": 71945142,
+          "digest": "sha256:ccbb6cd1f1eed49bde9d8bc8ab33fe18da24fad40e23c702bc08bd6fd1ad3dbd",
+          "url": "https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.8.0-beta.2/dancing-lyrics-0.8.0-beta.2-qqmusic-windows-x64.zip"
+        },
+        {
+          "name": "dancing-lyrics-0.8.0-beta.2-qqmusic-windows-x64.zip.sha256",
+          "size": 119,
+          "digest": "sha256:330a7cc6a902e2b79d635aad60de2c2b8755119c81fb672a62c24af3c391fc0f",
+          "url": "https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.8.0-beta.2/dancing-lyrics-0.8.0-beta.2-qqmusic-windows-x64.zip.sha256"
+        }
+      ]
+    }
+  ],
+  "public_downloads": {
+    "passed": true,
+    "authenticated_download": false,
+    "tag_commits_match": true,
+    "assets": [
+      {
+        "name": "dancing-lyrics-0.8.0-beta.2-kugou.1-windows-x64.zip",
+        "url": "https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.8.0-beta.2-kugou.1/dancing-lyrics-0.8.0-beta.2-kugou.1-windows-x64.zip",
+        "bytes": 71954702,
+        "sha256": "210beb5d2d880c34f3cac6078327338ca598489de5cab6bb1601786acbcbbd59",
+        "anonymous_head_status": 200,
+        "server_digest_matches": true,
+        "tag": "v0.8.0-beta.2-kugou.1",
+        "tag_commit": "469bffed5a46abb691fae1e96e34f2d8b1dcfc76"
+      },
+      {
+        "name": "dancing-lyrics-0.8.0-beta.2-kugou.1-windows-x64.zip.sha256",
+        "url": "https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.8.0-beta.2-kugou.1/dancing-lyrics-0.8.0-beta.2-kugou.1-windows-x64.zip.sha256",
+        "bytes": 119,
+        "sha256": "10493663d3946f811fd13b07f59e6abf37f16c144356de86597a78166325e5be",
+        "anonymous_head_status": 200,
+        "server_digest_matches": true,
+        "tag": "v0.8.0-beta.2-kugou.1",
+        "tag_commit": "469bffed5a46abb691fae1e96e34f2d8b1dcfc76"
+      },
+      {
+        "name": "dancing-lyrics-0.8.0-beta.2-netease-windows-x64.zip",
+        "url": "https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.8.0-beta.2/dancing-lyrics-0.8.0-beta.2-netease-windows-x64.zip",
+        "bytes": 71952888,
+        "sha256": "c095287714bb7a12d196cacfb9a941ccee78e92a8fb21e14136b73c61f310979",
+        "anonymous_head_status": 200,
+        "server_digest_matches": true,
+        "tag": "v0.8.0-beta.2",
+        "tag_commit": "469bffed5a46abb691fae1e96e34f2d8b1dcfc76"
+      },
+      {
+        "name": "dancing-lyrics-0.8.0-beta.2-netease-windows-x64.zip.sha256",
+        "url": "https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.8.0-beta.2/dancing-lyrics-0.8.0-beta.2-netease-windows-x64.zip.sha256",
+        "bytes": 119,
+        "sha256": "6d3bd87a02b8a250327768e9edd62bd1a6e2a822585936402ce77557babd76f6",
+        "anonymous_head_status": 200,
+        "server_digest_matches": true,
+        "tag": "v0.8.0-beta.2",
+        "tag_commit": "469bffed5a46abb691fae1e96e34f2d8b1dcfc76"
+      },
+      {
+        "name": "dancing-lyrics-0.8.0-beta.2-qqmusic-windows-x64.zip",
+        "url": "https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.8.0-beta.2/dancing-lyrics-0.8.0-beta.2-qqmusic-windows-x64.zip",
+        "bytes": 71945142,
+        "sha256": "ccbb6cd1f1eed49bde9d8bc8ab33fe18da24fad40e23c702bc08bd6fd1ad3dbd",
+        "anonymous_head_status": 200,
+        "server_digest_matches": true,
+        "tag": "v0.8.0-beta.2",
+        "tag_commit": "469bffed5a46abb691fae1e96e34f2d8b1dcfc76"
+      },
+      {
+        "name": "dancing-lyrics-0.8.0-beta.2-qqmusic-windows-x64.zip.sha256",
+        "url": "https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/download/v0.8.0-beta.2/dancing-lyrics-0.8.0-beta.2-qqmusic-windows-x64.zip.sha256",
+        "bytes": 119,
+        "sha256": "330a7cc6a902e2b79d635aad60de2c2b8755119c81fb672a62c24af3c391fc0f",
+        "anonymous_head_status": 200,
+        "server_digest_matches": true,
+        "tag": "v0.8.0-beta.2",
+        "tag_commit": "469bffed5a46abb691fae1e96e34f2d8b1dcfc76"
+      }
+    ],
+    "zip_count": 3
+  },
+  "netease_public": {
+    "passed": true,
+    "checks": {
+      "isolated_source_install_update_restore": true,
+      "isolated_source_uninstall_preserves_settings_and_framework": true,
+      "isolated_source_offline_stage": true,
+      "frozen_running_client_guard": true,
+      "frozen_guard_keeps_plugin_absent": true,
+      "native_安装网易云联动.bat": true,
+      "native_卸载网易云联动.bat": true,
+      "native_恢复网易云联动.bat": true,
+      "public_start_bat_smoke": true
+    },
+    "version": "0.8.0-beta.2",
+    "zipSha256": "c095287714bb7a12d196cacfb9a941ccee78e92a8fb21e14136b73c61f310979",
+    "developerPathRemoved": true,
+    "cleanMachine": false,
+    "realClientBuild": "3.1.41.205529",
+    "frameworkHashVerified": true,
+    "frozen_positive_install_rerun": false,
+    "source_target_idle_probe_is_fixture": true,
+    "actual_client_restarted": false,
+    "playback_commands": 0,
+    "packaged_smoke_checks": 75
+  },
+  "qqmusic_public": {
+    "passed": true,
+    "checks": {
+      "native_window_visible": true,
+      "correct_version": true,
+      "capability_hint": true,
+      "startup_control": true,
+      "cache_control": true,
+      "reuses_existing_instance": true
+    },
+    "developerPathRemoved": true,
+    "cleanMachine": false,
+    "realQQPlayback": false,
+    "zipSha256": "ccbb6cd1f1eed49bde9d8bc8ab33fe18da24fad40e23c702bc08bd6fd1ad3dbd"
+  },
+  "kugou_entries": {
+    "passed": true,
+    "checks": {
+      "native_install": true,
+      "unicode_shortcuts_target_current_exe": true,
+      "native_uninstall": true,
+      "uninstall_removes_owned_shortcuts": true,
+      "double_click_defaults_to_kugou": true,
+      "dedicated_version_visible": true,
+      "native_control_panel_visible": true,
+      "second_entry_reuses_existing_instance": true
+    },
+    "developer_path_removed": true,
+    "clean_machine": false,
+    "personal_shortcuts_restored": true,
+    "playback_commands": 0
+  },
+  "kugou_real_background": {
+    "passed": true,
+    "checks": {
+      "connected": true,
+      "nativePanelVisible": true,
+      "realLyricsReceived": true,
+      "advancing": true,
+      "effectsKeepTransport": true,
+      "continuousClockNeverRewinds": true,
+      "continuousClockNoPacketJumps": true,
+      "nativeClockWithin350ms": true,
+      "backgroundConnected": true,
+      "backgroundChannelIndependentOfWindow": true,
+      "backgroundLyricsReceived": true,
+      "backgroundProgressAdvances": true,
+      "coldStartMinimized": true,
+      "nativeBackgroundAfterMinimizeObserved": true
+    },
+    "packaged": true,
+    "actual_bat_entry": true,
+    "developer_path_removed": true,
+    "clean_machine": false,
+    "simulated_live_data": false,
+    "playback_commands": 0,
+    "window_states": [
+      {
+        "seconds": 0.12,
+        "phase": "cold_minimized"
+      },
+      {
+        "seconds": 10.14,
+        "phase": "restored"
+      },
+      {
+        "seconds": 18.17,
+        "phase": "minimized"
+      },
+      {
+        "seconds": 28.03,
+        "phase": "tray_hidden"
+      }
+    ],
+    "seconds": 47.69,
+    "max_lines": 88,
+    "max_words": 425,
+    "max_translations": 85
+  },
+  "frozen_lifetime_control": {
+    "passed": true,
+    "checks": {
+      "default_six": true,
+      "range_zero_to_120": true,
+      "immediate_edit": true,
+      "zero_disables": true,
+      "restore_default": true,
+      "saved_to_extracted_package_settings": true
+    },
+    "native_uia": true,
+    "packaged": true,
+    "developer_path_removed": true,
+    "real_music_playback": false,
+    "playback_commands": 0
+  },
+  "frozen_engine_smoke": {
+    "netease": {
+      "passed": true,
+      "qt_platform": "windows",
+      "result_fields": 75,
+      "boolean_checks_passed": true,
+      "effect_benchmark": {
+        "samples": 90,
+        "glyphs": 51,
+        "devicePixelRatio": 1.5,
+        "physicalCanvas": [
+          2561,
+          1529
+        ],
+        "coldPrepareMs": 23.905,
+        "warmMedianMs": 7.081,
+        "warmP95Ms": 7.75,
+        "cacheBytes": 1267040
+      },
+      "carmen_effect_benchmark": {
+        "samples": 90,
+        "glyphs": 51,
+        "devicePixelRatio": 1.5,
+        "physicalCanvas": [
+          2561,
+          1529
+        ],
+        "coldPrepareMs": 26.416,
+        "warmMedianMs": 3.669,
+        "warmP95Ms": 4.078,
+        "cacheBytes": 1277432
+      },
+      "animation_benchmarks": {
+        "ripple_wave": {
+          "samples": 90,
+          "glyphs": 51,
+          "singingSync": false,
+          "devicePixelRatio": 1.5,
+          "physicalCanvas": [
+            2561,
+            1529
+          ],
+          "coldPrepareMs": 44.549,
+          "warmMedianMs": 3.028,
+          "warmP95Ms": 3.254,
+          "cacheBytes": 612668
+        },
+        "ripple_wave-singing": {
+          "samples": 90,
+          "glyphs": 51,
+          "singingSync": true,
+          "devicePixelRatio": 1.5,
+          "physicalCanvas": [
+            2561,
+            1529
+          ],
+          "coldPrepareMs": 41.236,
+          "warmMedianMs": 4.349,
+          "warmP95Ms": 4.698,
+          "cacheBytes": 589620
+        },
+        "ripple_shake": {
+          "samples": 90,
+          "glyphs": 51,
+          "singingSync": false,
+          "devicePixelRatio": 1.5,
+          "physicalCanvas": [
+            2561,
+            1529
+          ],
+          "coldPrepareMs": 38.836,
+          "warmMedianMs": 3.558,
+          "warmP95Ms": 5.114,
+          "cacheBytes": 612668
+        },
+        "ripple_shake-singing": {
+          "samples": 90,
+          "glyphs": 51,
+          "singingSync": true,
+          "devicePixelRatio": 1.5,
+          "physicalCanvas": [
+            2561,
+            1529
+          ],
+          "coldPrepareMs": 45.873,
+          "warmMedianMs": 4.701,
+          "warmP95Ms": 4.978,
+          "cacheBytes": 589620
+        },
+        "fall_wave": {
+          "samples": 90,
+          "glyphs": 51,
+          "singingSync": false,
+          "devicePixelRatio": 1.5,
+          "physicalCanvas": [
+            2561,
+            1529
+          ],
+          "coldPrepareMs": 42.901,
+          "warmMedianMs": 2.733,
+          "warmP95Ms": 3.857,
+          "cacheBytes": 358168
+        },
+        "fall_wave-singing": {
+          "samples": 90,
+          "glyphs": 51,
+          "singingSync": true,
+          "devicePixelRatio": 1.5,
+          "physicalCanvas": [
+            2561,
+            1529
+          ],
+          "coldPrepareMs": 41.763,
+          "warmMedianMs": 3.721,
+          "warmP95Ms": 4.238,
+          "cacheBytes": 358168
+        },
+        "fall_shake": {
+          "samples": 90,
+          "glyphs": 51,
+          "singingSync": false,
+          "devicePixelRatio": 1.5,
+          "physicalCanvas": [
+            2561,
+            1529
+          ],
+          "coldPrepareMs": 39.035,
+          "warmMedianMs": 3.136,
+          "warmP95Ms": 4.018,
+          "cacheBytes": 358168
+        },
+        "fall_shake-singing": {
+          "samples": 90,
+          "glyphs": 51,
+          "singingSync": true,
+          "devicePixelRatio": 1.5,
+          "physicalCanvas": [
+            2561,
+            1529
+          ],
+          "coldPrepareMs": 41.545,
+          "warmMedianMs": 4.179,
+          "warmP95Ms": 4.603,
+          "cacheBytes": 358168
+        }
+      }
+    },
+    "kugou": {
+      "passed": true,
+      "qt_platform": "windows",
+      "result_fields": 75,
+      "boolean_checks_passed": true,
+      "effect_benchmark": {
+        "samples": 90,
+        "glyphs": 51,
+        "devicePixelRatio": 1.5,
+        "physicalCanvas": [
+          2561,
+          1529
+        ],
+        "coldPrepareMs": 23.476,
+        "warmMedianMs": 7.51,
+        "warmP95Ms": 8.683,
+        "cacheBytes": 1267040
+      },
+      "carmen_effect_benchmark": {
+        "samples": 90,
+        "glyphs": 51,
+        "devicePixelRatio": 1.5,
+        "physicalCanvas": [
+          2561,
+          1529
+        ],
+        "coldPrepareMs": 27.804,
+        "warmMedianMs": 3.785,
+        "warmP95Ms": 4.222,
+        "cacheBytes": 1277432
+      },
+      "animation_benchmarks": {
+        "ripple_wave": {
+          "samples": 90,
+          "glyphs": 51,
+          "singingSync": false,
+          "devicePixelRatio": 1.5,
+          "physicalCanvas": [
+            2561,
+            1529
+          ],
+          "coldPrepareMs": 45.34,
+          "warmMedianMs": 3.027,
+          "warmP95Ms": 3.242,
+          "cacheBytes": 612668
+        },
+        "ripple_wave-singing": {
+          "samples": 90,
+          "glyphs": 51,
+          "singingSync": true,
+          "devicePixelRatio": 1.5,
+          "physicalCanvas": [
+            2561,
+            1529
+          ],
+          "coldPrepareMs": 40.737,
+          "warmMedianMs": 4.487,
+          "warmP95Ms": 5.568,
+          "cacheBytes": 589620
+        },
+        "ripple_shake": {
+          "samples": 90,
+          "glyphs": 51,
+          "singingSync": false,
+          "devicePixelRatio": 1.5,
+          "physicalCanvas": [
+            2561,
+            1529
+          ],
+          "coldPrepareMs": 38.427,
+          "warmMedianMs": 3.317,
+          "warmP95Ms": 3.484,
+          "cacheBytes": 612668
+        },
+        "ripple_shake-singing": {
+          "samples": 90,
+          "glyphs": 51,
+          "singingSync": true,
+          "devicePixelRatio": 1.5,
+          "physicalCanvas": [
+            2561,
+            1529
+          ],
+          "coldPrepareMs": 42.156,
+          "warmMedianMs": 4.73,
+          "warmP95Ms": 5.039,
+          "cacheBytes": 589620
+        },
+        "fall_wave": {
+          "samples": 90,
+          "glyphs": 51,
+          "singingSync": false,
+          "devicePixelRatio": 1.5,
+          "physicalCanvas": [
+            2561,
+            1529
+          ],
+          "coldPrepareMs": 44.249,
+          "warmMedianMs": 3.148,
+          "warmP95Ms": 3.85,
+          "cacheBytes": 358168
+        },
+        "fall_wave-singing": {
+          "samples": 90,
+          "glyphs": 51,
+          "singingSync": true,
+          "devicePixelRatio": 1.5,
+          "physicalCanvas": [
+            2561,
+            1529
+          ],
+          "coldPrepareMs": 45.33,
+          "warmMedianMs": 3.893,
+          "warmP95Ms": 4.54,
+          "cacheBytes": 358168
+        },
+        "fall_shake": {
+          "samples": 90,
+          "glyphs": 51,
+          "singingSync": false,
+          "devicePixelRatio": 1.5,
+          "physicalCanvas": [
+            2561,
+            1529
+          ],
+          "coldPrepareMs": 39.998,
+          "warmMedianMs": 3.022,
+          "warmP95Ms": 4.078,
+          "cacheBytes": 358168
+        },
+        "fall_shake-singing": {
+          "samples": 90,
+          "glyphs": 51,
+          "singingSync": true,
+          "devicePixelRatio": 1.5,
+          "physicalCanvas": [
+            2561,
+            1529
+          ],
+          "coldPrepareMs": 42.386,
+          "warmMedianMs": 4.1,
+          "warmP95Ms": 4.699,
+          "cacheBytes": 358168
+        }
+      }
+    }
+  },
+  "personal_data": {
+    "passed": true,
+    "personal_files": 3,
+    "settings_fonts_presets_unchanged": true,
+    "installed_executables_replaced": false
+  },
+  "kugou_initial_attempt": {
+    "passed": false,
+    "reason": "initial current metadata lacked artist; normal matching refused to guess lyrics",
+    "lines_received": 0,
+    "retained_original_failure": true,
+    "retested_after_metadata_complete": true,
+    "retry_passed": true,
+    "runtime_changed_between_attempts": false
+  },
+  "layout_source_evidence": "docs/research/display-deadlines-20261024.json",
+  "layout_note": "Shared UI and render code unchanged from same-day 100/125/150% checks; packaged UI independently shown with the new version.",
+  "music_playback_commands": 0,
+  "not_verified": [
+    "second_clean_machine",
+    "frozen_positive_netease_install_this_release",
+    "new_real_netease_playback",
+    "new_real_qq_music_playback",
+    "real_iron_lotus_entrance",
+    "manual_pause_seek_switch_this_release",
+    "mac_native_or_new_mac_package"
+  ]
+}

@@ -4,6 +4,8 @@
 
 当前 Windows 修复版为 **0.8.0-beta.2-kugou.1**，由本仓库发布：[下载安装包](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/tag/v0.8.0-beta.2-kugou.1)。基于 CAR0TT0 的 [PR #4](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/pull/4) 继续适配，保留贡献者归属。
 
+刚启动酷狗或切歌时，客户端可能暂时只给出歌名，缺少歌手；程序会显示等待信息，避免猜配同名歌词。本轮成品首测因此未取得歌词，完整元数据出现后重测 14 项全部通过；没有修改运行时来掩盖首次失败。详情见 [本版成品验收](docs/research/display-release-20261024.json)。
+
 本次复现并修复了 `Mili` 与 `Mili（ミリー）` 的歌手别名不一致：旧版拒绝有效原生歌词对象，退回读取主窗口，导致最小化后断连。新版同时修复后台读取和别名缓存匹配；现场、翻唱、混音和合唱成员仍严格区分。本机 20.1.51.27967 已检查普通最小化与隐藏到托盘；其他未知歌词结构仍可能需要适配。
 
 ## 安装与使用

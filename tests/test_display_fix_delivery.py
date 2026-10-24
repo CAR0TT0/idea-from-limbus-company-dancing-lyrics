@@ -14,7 +14,7 @@ class DisplayFixDeliveryTests(unittest.TestCase):
                        "切换效果预设不会重置", "没有明确纯音乐提示", "预加载下一句",
                        "本版新增（2026-10-24）", "打入上述三个 Windows 下载包"):
             self.assertIn(phrase, readme)
-        for name in ("display-deadline-settings.png", "long-entrance-frames.png"):
+        for name in ("display-deadline-release.png", "long-entrance-frames.png"):
             image = QImageReader(str(ROOT / "docs/images" / name)).read()
             self.assertFalse(image.isNull())
             self.assertGreaterEqual(image.width(), 900)
