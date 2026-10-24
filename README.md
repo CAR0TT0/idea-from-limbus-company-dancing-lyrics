@@ -23,6 +23,8 @@ Windows 请按播放器选择独立压缩包：
 
 **酷狗音乐修复版**：完整解压 → 酷狗播放歌曲并开启桌面歌词 → 双击“启动酷狗联动.bat”。显示“原生歌词通道”或“系统媒体接口”后可最小化酷狗。本版修复 `Mili`／`Mili（ミリー）` 等别名导致的后台断连；未知结构仍会回退到需展开窗口的界面兼容模式，不承诺所有客户端后台可用。可选安装个人快捷方式及开启“随酷狗启动”；升级保留 `%LOCALAPPDATA%\DancingLyrics-Kugou\.state`，移动后需重新设置自动启动。详见 [酷狗安装与后台使用说明](KUGOU.md)。基于 [CAR0TT0 的 PR #4](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/pull/4) 继续修复，保留作者贡献。网易云与 QQ 的现有下载保持原版本。
 
+![酷狗后台联动设置实机界面](docs/images/kugou-background.png)
+
 **[下载 Mac 实验版](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/tag/v0.6.0-beta.2-macos.1)**（内置 Python）
 
 | Mac 芯片 | 压缩包 |

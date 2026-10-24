@@ -1,0 +1,344 @@
+{
+  "date": "2026-10-24",
+  "app_version": "0.8.0-beta.1-kugou.6",
+  "engine_version": "0.8.0-beta.1",
+  "passed": true,
+  "contributor": "CAR0TT0 / PR #4",
+  "environment": {
+    "windows_x64": true,
+    "kugou": "20.1.51.27967",
+    "python": "3.11.8",
+    "pyside6": "6.8.3"
+  },
+  "tests": {
+    "count": 473,
+    "seconds": 17.665,
+    "passed": true
+  },
+  "source_gui": {
+    "passed": true,
+    "checks": {
+      "connected": true,
+      "nativePanelVisible": true,
+      "realLyricsReceived": true,
+      "advancing": true,
+      "effectsKeepTransport": true,
+      "continuousClockNeverRewinds": true,
+      "continuousClockNoPacketJumps": true,
+      "nativeClockWithin350ms": true,
+      "backgroundConnected": true,
+      "backgroundChannelIndependentOfWindow": true,
+      "backgroundLyricsReceived": true,
+      "backgroundProgressAdvances": true,
+      "coldStartMinimized": true,
+      "nativeBackgroundAfterMinimizeObserved": true
+    },
+    "packaged": false,
+    "actual_bat_entry": false,
+    "developer_path_removed": false,
+    "clean_machine": false,
+    "simulated_live_data": false,
+    "playback_commands": 0,
+    "window_states": [
+      {
+        "seconds": 0.06,
+        "phase": "cold_minimized"
+      },
+      {
+        "seconds": 10.11,
+        "phase": "restored"
+      },
+      {
+        "seconds": 18.14,
+        "phase": "minimized"
+      },
+      {
+        "seconds": 28.0,
+        "phase": "tray_hidden"
+      }
+    ],
+    "seconds": 47.47,
+    "max_lines": 79,
+    "max_words": 425,
+    "max_translations": 63
+  },
+  "public_gui": {
+    "passed": true,
+    "checks": {
+      "connected": true,
+      "nativePanelVisible": true,
+      "realLyricsReceived": true,
+      "advancing": true,
+      "effectsKeepTransport": true,
+      "continuousClockNeverRewinds": true,
+      "continuousClockNoPacketJumps": true,
+      "nativeClockWithin350ms": true,
+      "backgroundConnected": true,
+      "backgroundChannelIndependentOfWindow": true,
+      "backgroundLyricsReceived": true,
+      "backgroundProgressAdvances": true,
+      "coldStartMinimized": true,
+      "nativeBackgroundAfterMinimizeObserved": true
+    },
+    "packaged": true,
+    "actual_bat_entry": true,
+    "developer_path_removed": true,
+    "clean_machine": false,
+    "simulated_live_data": false,
+    "playback_commands": 0,
+    "window_states": [
+      {
+        "seconds": 0.09,
+        "phase": "cold_minimized"
+      },
+      {
+        "seconds": 10.16,
+        "phase": "restored"
+      },
+      {
+        "seconds": 18.03,
+        "phase": "minimized"
+      },
+      {
+        "seconds": 28.11,
+        "phase": "tray_hidden"
+      }
+    ],
+    "seconds": 47.88,
+    "max_lines": 79,
+    "max_words": 425,
+    "max_translations": 63
+  },
+  "public_native": {
+    "passed": true,
+    "checks": {
+      "coldStartMinimizedUsesNative": true,
+      "minimizedProgressAdvances": true,
+      "replacementHidesOnlyNativeWindow": true,
+      "hiddenNativeProgressAdvances": true,
+      "heartbeatLossRestoresNative": true,
+      "gracefulExitRestoresNative": true,
+      "parentTestActuallyHidWindow": true,
+      "parentExitRestoresNative": true,
+      "crashTestActuallyHidWindow": true,
+      "nextHelperRecoversDeadOwner": true
+    },
+    "packaged": true,
+    "clean_machine": false,
+    "playback_commands": 0,
+    "native_window_restored": true,
+    "tray_hidden": false
+  },
+  "public_entries": {
+    "passed": true,
+    "checks": {
+      "native_install": true,
+      "unicode_shortcuts_target_current_exe": true,
+      "native_uninstall": true,
+      "uninstall_removes_owned_shortcuts": true,
+      "double_click_defaults_to_kugou": true,
+      "dedicated_version_visible": true,
+      "native_control_panel_visible": true,
+      "second_entry_reuses_existing_instance": true
+    },
+    "developer_path_removed": true,
+    "clean_machine": false,
+    "personal_shortcuts_restored": true,
+    "playback_commands": 0
+  },
+  "source_engine": {
+    "passed": true,
+    "checks": 75,
+    "actual_bat_entry": true
+  },
+  "public_engine": {
+    "passed": true,
+    "checks": 75,
+    "actual_bat_entry": true,
+    "effect_benchmark": {
+      "samples": 90,
+      "glyphs": 51,
+      "devicePixelRatio": 1.5,
+      "physicalCanvas": [
+        2561,
+        1529
+      ],
+      "coldPrepareMs": 23.472,
+      "warmMedianMs": 7.92,
+      "warmP95Ms": 8.854,
+      "cacheBytes": 1267040
+    },
+    "animation_benchmarks": {
+      "ripple_wave": {
+        "samples": 90,
+        "glyphs": 51,
+        "singingSync": false,
+        "devicePixelRatio": 1.5,
+        "physicalCanvas": [
+          2561,
+          1529
+        ],
+        "coldPrepareMs": 40.254,
+        "warmMedianMs": 3.294,
+        "warmP95Ms": 3.789,
+        "cacheBytes": 612668
+      },
+      "ripple_wave-singing": {
+        "samples": 90,
+        "glyphs": 51,
+        "singingSync": true,
+        "devicePixelRatio": 1.5,
+        "physicalCanvas": [
+          2561,
+          1529
+        ],
+        "coldPrepareMs": 44.107,
+        "warmMedianMs": 4.781,
+        "warmP95Ms": 5.329,
+        "cacheBytes": 589620
+      },
+      "ripple_shake": {
+        "samples": 90,
+        "glyphs": 51,
+        "singingSync": false,
+        "devicePixelRatio": 1.5,
+        "physicalCanvas": [
+          2561,
+          1529
+        ],
+        "coldPrepareMs": 42.655,
+        "warmMedianMs": 3.557,
+        "warmP95Ms": 4.134,
+        "cacheBytes": 612668
+      },
+      "ripple_shake-singing": {
+        "samples": 90,
+        "glyphs": 51,
+        "singingSync": true,
+        "devicePixelRatio": 1.5,
+        "physicalCanvas": [
+          2561,
+          1529
+        ],
+        "coldPrepareMs": 45.581,
+        "warmMedianMs": 4.885,
+        "warmP95Ms": 5.527,
+        "cacheBytes": 589620
+      },
+      "fall_wave": {
+        "samples": 90,
+        "glyphs": 51,
+        "singingSync": false,
+        "devicePixelRatio": 1.5,
+        "physicalCanvas": [
+          2561,
+          1529
+        ],
+        "coldPrepareMs": 44.666,
+        "warmMedianMs": 2.67,
+        "warmP95Ms": 4.24,
+        "cacheBytes": 358168
+      },
+      "fall_wave-singing": {
+        "samples": 90,
+        "glyphs": 51,
+        "singingSync": true,
+        "devicePixelRatio": 1.5,
+        "physicalCanvas": [
+          2561,
+          1529
+        ],
+        "coldPrepareMs": 42.374,
+        "warmMedianMs": 4.363,
+        "warmP95Ms": 5.546,
+        "cacheBytes": 358168
+      },
+      "fall_shake": {
+        "samples": 90,
+        "glyphs": 51,
+        "singingSync": false,
+        "devicePixelRatio": 1.5,
+        "physicalCanvas": [
+          2561,
+          1529
+        ],
+        "coldPrepareMs": 39.483,
+        "warmMedianMs": 3.356,
+        "warmP95Ms": 4.215,
+        "cacheBytes": 358168
+      },
+      "fall_shake-singing": {
+        "samples": 90,
+        "glyphs": 51,
+        "singingSync": true,
+        "devicePixelRatio": 1.5,
+        "physicalCanvas": [
+          2561,
+          1529
+        ],
+        "coldPrepareMs": 43.448,
+        "warmMedianMs": 4.484,
+        "warmP95Ms": 5.203,
+        "cacheBytes": 358168
+      }
+    }
+  },
+  "layouts": [
+    {
+      "dpr": 1.0,
+      "passed": true,
+      "checks": 19
+    },
+    {
+      "dpr": 1.25,
+      "passed": true,
+      "checks": 19
+    },
+    {
+      "dpr": 1.5,
+      "passed": true,
+      "checks": 19
+    }
+  ],
+  "archive": {
+    "passed": true,
+    "name": "dancing-lyrics-0.8.0-beta.1-kugou.6-windows-x64.zip",
+    "bytes": 71949183,
+    "sha256": "e86fa5566f8bf3ad7ec6ff373a810a51eff13e8eec24f46ae333c19738a1be5a",
+    "exe_sha256": "bfbdf6ffb0acca7d8b9eceda440b024d14527678ad17afb55e319318bb619887",
+    "runtime_source_commit": "d9aa7b5bb8270b82fbf2211f9765a405097fc3bf",
+    "entries": 329,
+    "crc": true,
+    "qt_runtime_present": true,
+    "private_files_excluded": true,
+    "extra_runtime_licenses": true
+  },
+  "local_install": {
+    "passed": true,
+    "personal_files_preserved": 1,
+    "personal_file_hashes_unchanged": true,
+    "existing_autostart_migrated": true,
+    "unknown_registration_preserved": false,
+    "shortcuts_updated": true,
+    "installed_panel": {
+      "connected": true,
+      "processes": 3,
+      "native": true,
+      "version": true
+    },
+    "playback_commands": 0,
+    "music_client_restarted": false
+  },
+  "existing_netease_and_qq_downloads_replaced": false,
+  "playback_commands": 0,
+  "client_file_writes": 0,
+  "process_memory_writes": 0,
+  "not_verified": [
+    "second_clean_machine",
+    "client_x86",
+    "all_future_client_versions",
+    "windows_login_reboot",
+    "macos_binary",
+    "new_live_pause_seek_switch"
+  ]
+}

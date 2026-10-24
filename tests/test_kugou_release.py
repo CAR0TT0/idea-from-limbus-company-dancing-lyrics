@@ -7,6 +7,23 @@ from tools.package_kugou import VERSION, validate_runtime, public_files
 
 
 class KugouReleaseTests(unittest.TestCase):
+    def test_final_evidence_uses_real_packaged_background_data_and_keeps_limits(self):
+        root=Path(__file__).resolve().parents[1]
+        record=json.loads((root/'docs/research/kugou-release-20261024.json').read_text(encoding='utf-8'))
+        self.assertEqual(record['app_version'],KUGOU_VERSION)
+        self.assertTrue(record['passed'])
+        self.assertTrue(record['public_gui']['actual_bat_entry'])
+        self.assertFalse(record['public_gui']['simulated_live_data'])
+        for key in ('coldStartMinimized','backgroundConnected','backgroundLyricsReceived','backgroundProgressAdvances'):
+            self.assertTrue(record['public_gui']['checks'][key])
+        self.assertTrue(record['public_native']['checks']['gracefulExitRestoresNative'])
+        self.assertTrue(record['local_install']['personal_file_hashes_unchanged'])
+        self.assertEqual(record['playback_commands'],0)
+        self.assertFalse(record['existing_netease_and_qq_downloads_replaced'])
+        self.assertIn('second_clean_machine',record['not_verified'])
+        self.assertIn('client_x86',record['not_verified'])
+        self.assertRegex(record['archive']['sha256'],r'^[0-9a-f]{64}$')
+
     def test_current_kugou_guides_and_download_link_match_dedicated_version(self):
         root=Path(__file__).resolve().parents[1]
         for name in ('KUGOU.md','release/kugou-guide.txt','release/kugou-release-notes.md'):
