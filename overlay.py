@@ -1,5 +1,7 @@
 import random
 import sys
+import time
+from bisect import bisect_right
 from PySide6.QtCore import Qt, QTimer, QEvent
 from PySide6.QtGui import QPainter
 from PySide6.QtWidgets import QApplication, QWidget
@@ -33,6 +35,10 @@ class LyricsOverlay(QWidget):
         self.display_document = None
         self.timeline = None
         self.layouts = {}
+        self._warm_jobs = {}
+        self._warm_timer = QTimer(self)
+        self._warm_timer.setInterval(10)
+        self._warm_timer.timeout.connect(self._warm_step)
         self.seed = random.randrange(1_000_000)
         self._screen = None
         self.refresh_screen()
@@ -86,15 +92,64 @@ class LyricsOverlay(QWidget):
         self.display_document = display_document(self.document, mode=display_mode(self.prefs), hide_instrumental=self.prefs.hide_instrumental)
         self.timeline = self._timeline(self.display_document) if self.display_document else None
         self.clear_layouts()
+        self._sync_timer()
 
     def _timeline(self, document):
         delay = self.prefs.delay_ms - getattr(self.player, "lyric_offset_ms", 0)
         return LyricTimeline(document, delay, self.prefs.animation_style,
-                             self.prefs.entry_speed, self.prefs.exit_speed, self.prefs.scramble_exit)
+                             self.prefs.entry_speed, self.prefs.exit_speed, self.prefs.scramble_exit,
+                             self.prefs.max_display_seconds * 1000)
 
     def clear_layouts(self):
+        self._warm_timer.stop()
+        self._warm_jobs.clear()
         self.layouts.clear()
         self.update()
+
+    def _prepare_lines(self, active, position):
+        """Retain at most two visible sentences plus one upcoming sentence."""
+        candidates = [(item.index, self.timeline.lines[item.index]) for item in active]
+        for index in range(bisect_right(self.timeline.starts, position), len(self.timeline.lines)):
+            line = self.timeline.lines[index]
+            if line.text.strip() and (not self.player.duration or line.start_ms < self.player.duration):
+                candidates.append((index, line))
+                break
+        wanted = {index for index, _ in candidates}
+        self.layouts = {key: value for key, value in self.layouts.items() if key in wanted}
+        self._warm_jobs = {key: value for key, value in self._warm_jobs.items() if key in wanted}
+        regions = display_regions(self.width(), self.height(), self.prefs.region)
+        for index, line in candidates:
+            if index in self.layouts:
+                continue
+            occupied = [layout.bounds for layout in self.layouts.values()]
+            layout = build_layout(line.text, self.seed + index * 7919, regions, occupied, self.prefs, line.secondary_start)
+            if layout:
+                self.layouts[index] = layout
+                self._warm_jobs[index] = TEXT_EFFECTS.prepare_steps(
+                    layout.glyphs, layout.font_size, self.prefs, self.devicePixelRatioF(), self.prefs.jump, layout.angle)
+        if self._warm_jobs and self.isVisible() and not self._warm_timer.isActive():
+            self._warm_timer.start()
+
+    def _warm_step(self):
+        if not self.isVisible() or not self.timeline or self.player.ended:
+            self._warm_timer.stop()
+            return
+        deadline = time.perf_counter() + .004
+        changed = False
+        while self._warm_jobs and time.perf_counter() < deadline:
+            # Entrance materials first, optional scramble-exit symbols second.
+            index = min(self._warm_jobs, key=lambda key: (self.layouts[key].surface is not None, key))
+            try:
+                ready = next(self._warm_jobs[index])
+                if ready is not None:
+                    self.layouts[index].surface = ready
+                    changed = True
+            except StopIteration:
+                del self._warm_jobs[index]
+        if not self._warm_jobs:
+            self._warm_timer.stop()
+        if changed:
+            self.update()
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -131,6 +186,7 @@ class LyricsOverlay(QWidget):
 
     def hideEvent(self, event):
         self.timer.stop()
+        self._warm_timer.stop()
         super().hideEvent(event)
 
     def event(self, event):
@@ -149,16 +205,7 @@ class LyricsOverlay(QWidget):
             return
         position = self.player.position()
         active = self.timeline.visible(position, self.player.duration)
-        wanted = {item.index for item in active}
-        self.layouts = {key: value for key, value in self.layouts.items() if key in wanted}
-        regions = display_regions(self.width(), self.height(), self.prefs.region)
-        for item in active:
-            if item.index in self.layouts:
-                continue
-            occupied = [layout.bounds for layout in self.layouts.values()]
-            layout = build_layout(item.text, self.seed + item.index * 7919, regions, occupied, self.prefs, item.secondary_start)
-            if layout:
-                self.layouts[item.index] = layout
+        self._prepare_lines(active, position)
         energy = self.player.energy_at(position)
         if self.prefs.motion == "wave":
             energy = 0.32
@@ -166,7 +213,7 @@ class LyricsOverlay(QWidget):
         seconds = position / 1000.0
         for item in active:
             layout = self.layouts.get(item.index)
-            if not layout:
+            if not layout or layout.surface is None:
                 continue
             # A constrained screen may only have room for the newer sentence.
             if any(layout.bounds.intersects(self.layouts[new.index].bounds)
@@ -184,9 +231,6 @@ class LyricsOverlay(QWidget):
             painter.translate(layout.center)
             painter.rotate(layout.angle)
             painter.translate(0, drift)
-            if layout.surface is None:
-                layout.surface = TEXT_EFFECTS.prepare(layout.glyphs, layout.font_size, self.prefs,
-                                                      self.devicePixelRatioF(), self.prefs.jump, layout.angle)
             states = (glyph_states(layout.glyphs, self.prefs, item, position, energy, layout.font_size,
                                    self.seed + item.index * 7919, layout.angle)
                       if self.prefs.animation_style != "classic" or self.prefs.singing_sync or item.secondary_start >= 0 or self.prefs.scramble_exit else None)

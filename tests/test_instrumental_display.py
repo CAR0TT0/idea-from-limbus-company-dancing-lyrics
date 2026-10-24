@@ -14,6 +14,24 @@ APP = QApplication.instance() or QApplication([])
 
 
 class InstrumentalTests(unittest.TestCase):
+    def test_marker_with_credits_in_separate_or_merged_lines_is_instrumental(self):
+        from lrc import parse_lrc
+        for text in ("[00:00]作曲: かねこちはる / t+pazolite\n[00:05]纯音乐，请欣赏",
+                     "[00:00]编曲：某某\n[00:00]Composer: Example\n[00:00]纯音乐，请欣赏。",
+                     "[00:00]Composed by: Example\n[00:05]纯音乐，请您欣赏\n[00:10]"):
+            document = parse_lrc(text)
+            self.assertTrue(instrumental_document(document))
+            for mode in ("original", "translation", "bilingual_original", "bilingual_translation"):
+                self.assertIsNone(display_document(document, mode=mode, hide_instrumental=True))
+            self.assertIs(display_document(document), document)
+
+    def test_credits_alone_or_real_lyrics_alongside_marker_are_not_instrumental(self):
+        from lrc import parse_lrc
+        for text in ("[00:00]作曲: Example", "[00:00]作曲: Example\n[00:05]我想听纯音乐\n[00:10]纯音乐，请欣赏",
+                     "[00:00]纯音乐，请欣赏\n[00:05]This is a real lyric",
+                     "[00:00]这是纯音乐，请欣赏我的故事"):
+            self.assertFalse(instrumental_document(parse_lrc(text)))
+
     def test_clear_markers_can_be_hidden_but_default_preserves_them(self):
         for text in ("纯音乐，请欣赏", "纯音乐，请您欣赏。", "此歌曲为没有填词的纯音乐"):
             document = LyricDocument([LyricLine(0, text)], [])

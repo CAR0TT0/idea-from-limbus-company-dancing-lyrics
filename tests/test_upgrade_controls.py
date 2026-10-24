@@ -12,6 +12,16 @@ class UpgradeControlTests(unittest.TestCase):
     setUp = fixture.ControlPanelTests.setUp
     tearDown = fixture.ControlPanelTests.tearDown
 
+    def test_lifetime_control_saves_without_transport_or_preset_changes(self):
+        self.player.clock, self.player.playing = 6500, True
+        self.panel.spins["max_display_seconds"].setValue(9)
+        self.assertEqual(self.store.load().max_display_seconds, 9)
+        self.panel.apply_preset("builtin:quiet")
+        self.assertEqual(self.prefs.max_display_seconds, 9)
+        self.panel.spins["max_display_seconds"].setValue(0)
+        self.assertEqual(self.store.load().max_display_seconds, 0)
+        self.assertEqual((self.player.clock, self.player.playing, self.player.seeks), (6500, True, []))
+
     def test_gradient_color_dialog_and_middle_stop_save_without_transport_changes(self):
         self.player.clock, self.player.playing = 6500, False
         self.panel.text_style.setCurrentIndex(self.panel.text_style.findData("gradient_fill"))

@@ -131,6 +131,19 @@ class TextEffects:
         return asset
 
     def prepare(self, glyphs, pixels, prefs, dpr, jump_limit=0, angle=0, _regions=None, _replacements=True):
+        surface = None
+        for ready in self.prepare_steps(glyphs, pixels, prefs, dpr, jump_limit, angle, _regions, _replacements):
+            if ready is not None:
+                surface = ready
+        return surface
+
+    def prepare_steps(self, glyphs, pixels, prefs, dpr, jump_limit=0, angle=0, _regions=None, _replacements=True):
+        """GUI-thread batches: publish the entrance before preparing exit symbols.
+
+        Yield None after a glyph/material, or a usable surface when ready. The
+        overlay advances these steps between frames and preloads the next cue.
+        No worker touches Qt fonts, shared caches or the playback clock.
+        """
         _, _, color = effect_palette(prefs)
         stroke, radius = effect_geometry(pixels, prefs.text_style, prefs.glow_variant)
         margin = stroke + radius + 3 / dpr
@@ -160,12 +173,14 @@ class TextEffects:
                 ink.translate(glyph.x, glyph.baseline)
                 bounds = bounds.united(ink)
             assets.append(asset)
+            yield None
         bounds = bounds.toAlignedRect()
         surface = LineSurface(glyphs, transparent_image(bounds, dpr), QPointF(bounds.x(), bounds.y()), assets, pixels)
         surface.gradient_bounds = gradient_bounds
         surface.gradient_regions = gradient_regions
         if prefs.animation_style != "classic" or prefs.singing_sync or gradients.enabled(prefs) or prefs.scramble_exit:
             self._materials(surface, prefs)
+        yield surface
         if prefs.scramble_exit and _replacements:
             variants = []
             variant_scales = []
@@ -181,9 +196,12 @@ class TextEffects:
                 region = gradient_regions[glyph.language]
                 for index, path in enumerate(paths):
                     scales.append(min(1, max(1, glyph.cell_width or glyph.path.boundingRect().width()) / max(1, path.boundingRect().width())))
-                    key = (prefs.font_family, glyph.pixels or pixels, glyph.cell_width, center.x(), center.y(), glyph.x, glyph.baseline,
+                    # Solid colours do not depend on sentence placement or cell
+                    # width (fitting happens when drawing). Share their symbols.
+                    placement = (glyph.x, glyph.baseline, region.getRect()) if gradients.enabled(prefs) else ()
+                    key = (prefs.font_family, glyph.pixels or pixels, placement,
                            dpr, prefs.text_style, prefs.glow_variant, prefs.color, prefs.gradient_colors, prefs.gradient_direction,
-                           prefs.glow_strength, prefs.singing_sync, region.getRect(), index)
+                           prefs.glow_strength, prefs.singing_sync, index)
                     material = self.replacement_cache.get(key)
                     if material is None:
                         variant = replace(glyph, path=path, effect_key=None)
@@ -198,13 +216,14 @@ class TextEffects:
                         self.replacement_cache.move_to_end(key)
                     items.append(material)
                     bounds = bounds.united(QRectF(QPointF(material[2]) + QPointF(glyph.x, glyph.baseline), material[0].deviceIndependentSize()).toAlignedRect())
+                    yield None
                 variants.append(items)
                 variant_scales.append(scales)
             surface.replacements = variants
             surface.replacement_scales = variant_scales
             surface.origin = QPointF(bounds.x(), bounds.y())
             surface.image = transparent_image(bounds, dpr)
-        return surface
+        yield surface
 
     def _materials(self, surface, prefs):
         """Cache complete glyph materials; fades multiply their final RGBA once.

@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
     QFrame, QHBoxLayout, QLabel, QMenu, QPushButton, QScrollArea, QSizePolicy, QInputDialog, QMessageBox, QCheckBox,
     QSlider as QtSlider, QSpinBox as QtSpinBox, QStackedWidget, QStyle, QStyleOptionSlider, QSystemTrayIcon, QVBoxLayout, QWidget,
 )
-from lrc import load_lrc, ActiveLine, TimedWord, LyricLine, LyricDocument, word_timing_status, display_document
+from lrc import load_lrc, ActiveLine, TimedWord, LyricLine, LyricDocument, word_timing_status, display_document, limit_display_window
 from fonts import FontLibrary
 from animation import _glyph_layout
 from text_effects import TEXT_EFFECTS
@@ -252,7 +252,9 @@ class FontPreview(QWidget):
         return (self._position + (self._elapsed.elapsed() if self.timer.isActive() else 0)) % (self._preview_item().end_ms + 400)
 
     def _preview_item(self):
-        end = 3800 if self.prefs.animation_style == "classic" and not self.prefs.scramble_exit else 3200 + min(600 * 100 / self.prefs.exit_speed, 4400 * .45)
+        classic = self.prefs.animation_style == "classic" and not self.prefs.scramble_exit
+        end = 3800 if classic else 3200 + min(600 * 100 / self.prefs.exit_speed, 4400 * .45)
+        exit_start = end - min(600 * 100 / self.prefs.exit_speed, end / 2) if classic else 3200
         units = [index for index, char in enumerate(EFFECT_PREVIEW_TEXT) if char.isalnum()]
         words = tuple(TimedWord(round(800 + 2200 * order / len(units)),
                                 round(800 + 2200 * (order + 1) / len(units)), index, index + 1)
@@ -266,8 +268,10 @@ class FontPreview(QWidget):
                                     unit.start(), unit.end()) for i, unit in enumerate(units))
             line = display_document(LyricDocument([LyricLine(0, text, words, EFFECT_PREVIEW_TEXT)], []),
                                     mode=display_mode(self.prefs)).lines[0]
-        return ActiveLine(0, line.text, 0, end, 1,
-                          min((300 if self.prefs.animation_style == "classic" else 700) * 100 / self.prefs.entry_speed, 3200 * .35), 3200, line.words, line.secondary_start)
+        item = ActiveLine(0, line.text, 0, end, 1,
+                          min((300 if self.prefs.animation_style == "classic" else 700) * 100 / self.prefs.entry_speed,
+                              end / 2 if classic else 3200 * .35), exit_start, line.words, line.secondary_start)
+        return limit_display_window(item, self.prefs.max_display_seconds * 1000, 600 * 100 / self.prefs.exit_speed)
 
     def _stop_preview(self):
         self._position = self._preview_position()
@@ -319,8 +323,9 @@ class FontPreview(QWidget):
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         opacity = self.prefs.opacity / 100
         if self._running and self.prefs.animation_style == "classic" and not self.prefs.scramble_exit:
-            opacity *= max(0, min(1, position / min(300 * 100 / self.prefs.entry_speed, 1900),
-                                 (3800 - position) / min(600 * 100 / self.prefs.exit_speed, 1900)))
+            item = self._preview_item()
+            opacity *= max(0, min(1, position / max(1, item.entry_end_ms),
+                                 (item.end_ms - position) / max(1, item.end_ms - item.exit_start_ms)))
         painter.setOpacity(opacity)
         painter.drawImage(self._surface.origin, image)
 
@@ -698,6 +703,7 @@ class ControlPanel(QWidget):
             ("motion_strength", 0, 100, " %"),
             ("angle", 0, 25, " °"), ("opacity", 10, 100, " %"),
             ("delay_ms", -10000, 10000, " ms"),
+            ("max_display_seconds", 0, 120, " 秒"),
         ):
             spin = QSpinBox()
             spin.setRange(minimum, maximum)
@@ -706,6 +712,11 @@ class ControlPanel(QWidget):
             spin.setSingleStep(100 if name == "delay_ms" else 1)
             spin.valueChanged.connect(lambda value, key=name: self._set_preference(key, value))
             self.spins[name] = spin
+        self.spins["max_display_seconds"].setSpecialValueText("不限制")
+        self.spins["max_display_seconds"].setAccessibleName("歌词最长显示时间")
+        self.spins["max_display_seconds"].setToolTip(
+            "从每句开始计时，包含入场和退场；默认 6 秒，0 表示不额外限制。\n"
+            "长句可能提前消失，可调长或关闭。空白段和歌曲结束仍会清除；末句未知时长仍以 6 秒兜底。")
         self.parameter_fields = {}
         self.parameter_sliders = {}
         for name, low, high, suffix in (("entry_speed", 25, 300, " %"), ("exit_speed", 25, 300, " %"),
@@ -808,7 +819,7 @@ class ControlPanel(QWidget):
         self.language_combo.currentIndexChanged.connect(lambda _: self._set_preference("lyric_display_mode", self.language_combo.currentData()))
         self.instrumental_checkbox = QCheckBox("纯音乐时不显示歌词或提示")
         self.instrumental_checkbox.setChecked(self.prefs.hide_instrumental)
-        self.instrumental_checkbox.setToolTip("隐藏明确的纯音乐标记／提示；不根据歌曲名称或暂未获取歌词来猜测。")
+        self.instrumental_checkbox.setToolTip("隐藏纯音乐标记及附带的作曲／编曲等署名；混有正常歌词时不整曲隐藏。不根据歌曲名或暂无歌词猜测。")
         self.instrumental_checkbox.toggled.connect(lambda value: self._set_preference("hide_instrumental", value))
         self._reload_fonts()
         self.font_combo.currentIndexChanged.connect(self._font_selected)
@@ -821,6 +832,7 @@ class ControlPanel(QWidget):
                           ("歌词透明度", self.spins["opacity"]), ("歌词语言", self.translation_checkbox), ("纯音乐显示", self.instrumental_checkbox))),
             ("律动与同步", (("总运动强度（0% 静止）", self.spins["motion_strength"]), ("歌词动画", self.animation_combo),
                           ("乱码退场", self.scramble_checkbox),
+                          ("歌词最长显示时间（0 不限制）", self.spins["max_display_seconds"]),
                           ("入场速度", self.parameter_fields["entry_speed"]), ("退场速度", self.parameter_fields["exit_speed"]),
                           ("抖动频率", self.parameter_fields["shake_frequency"]), ("跌落距离（32px 字号）", self.parameter_fields["fall_distance"]),
                           ("预览背景", self.preview_background), ("效果预览", self.font_preview), ("动画预览", self.replay_button),
@@ -1139,7 +1151,7 @@ class ControlPanel(QWidget):
         self.overlay.refresh_preferences()
         self._update_effect_controls()
         self.font_preview.update()
-        if key in ("animation_style", "entry_speed", "exit_speed", "shake_frequency", "fall_distance", "singing_sync", "lyric_display_mode", "scramble_exit"):
+        if key in ("animation_style", "entry_speed", "exit_speed", "shake_frequency", "fall_distance", "singing_sync", "lyric_display_mode", "scramble_exit", "max_display_seconds"):
             self.font_preview.replay()
 
     def _update_effect_controls(self):

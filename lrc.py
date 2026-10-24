@@ -7,6 +7,12 @@ import re
 STAMP = re.compile(r"\[(\d+):(\d{2})(?:[.:](\d{1,3}))?\]")
 OFFSET = re.compile(r"\[offset\s*:\s*([+-]?\d+)\]", re.I)
 META = re.compile(r"^\[(?:ar|al|ti|au|by|re|ve|length|offset)\s*:", re.I)
+INSTRUMENTAL_MARKERS = {"纯音乐请欣赏", "纯音乐请您欣赏", "此歌曲为没有填词的纯音乐"}
+CREDIT = re.compile(
+    r"^(?:作曲|曲|编曲|作词|词|词曲|制作人|制作|演奏|乐器|混音|混音师|母带|母带处理|"
+    r"录音|录音师|录音室|出品|出品人|发行|发行公司|版权|监制|统筹|策划|封面|"
+    r"Composer|Composed\s+by|Arranger|Arranged\s+by|Producer|Produced\s+by|"
+    r"Lyrics|Lyricist|Mixed\s+by|Mastered\s+by|Copyright)\s*[:：]\s*\S", re.I)
 
 
 @dataclass(frozen=True)
@@ -46,9 +52,19 @@ def instrumental_document(document):
         return False
     if document.instrumental:
         return True
-    texts = [re.sub(r"[\s，,。.!！:：]", "", line.text) for line in document.lines if line.text.strip()]
-    markers = {"纯音乐请欣赏", "纯音乐请您欣赏", "此歌曲为没有填词的纯音乐"}
-    return bool(texts) and all(text in markers for text in texts)
+    marker = False
+    for line in document.lines:
+        # Equal-time LRC records are combined with newlines by the parser.
+        for text in line.text.splitlines():
+            text = text.strip()
+            if not text:
+                continue
+            if re.sub(r"[\s，,。.!！:：]", "", text) in INSTRUMENTAL_MARKERS:
+                marker = True
+            elif not CREDIT.match(text):
+                return False
+    # Credits alone are insufficient evidence; genuine lyrics remain untouched.
+    return marker
 
 
 def display_document(document, prefer_translation=False, mode=None, hide_instrumental=False):
@@ -131,10 +147,21 @@ class ActiveLine:
     secondary_start: int = -1
 
 
+def limit_display_window(item, maximum_ms, exit_duration):
+    """Finish the exit before a user deadline, without changing the song clock."""
+    if not maximum_ms or item.end_ms <= item.start_ms + maximum_ms:
+        return item
+    end = item.start_ms + maximum_ms
+    return replace(item, end_ms=end,
+                   entry_end_ms=min(item.entry_end_ms, item.start_ms + maximum_ms * .35),
+                   exit_start_ms=min(item.exit_start_ms, end - min(exit_duration, maximum_ms * .3)))
+
+
 class LyricTimeline:
     """Position is authoritative: pause and seek need no event replay."""
     def __init__(self, document: LyricDocument, delay_ms: int = 0, animation_style: str = "classic",
-                 entry_speed: int = 100, exit_speed: int = 100, scramble_exit: bool = False):
+                 entry_speed: int = 100, exit_speed: int = 100, scramble_exit: bool = False,
+                 max_display_ms: int | None = None):
         # A positive LRC offset advances timestamps; a positive UI delay postpones them.
         shift = delay_ms - document.offset_ms
         self.lines = [replace(line, start_ms=line.start_ms + shift,
@@ -147,6 +174,7 @@ class LyricTimeline:
         self.entry_duration = 700 * 100 / entry_speed
         self.exit_duration = 600 * 100 / exit_speed
         self.classic_entry = 300 * 100 / entry_speed
+        self.max_display_ms = max_display_ms
 
     def _animated_window(self, index, duration):
         line = self.lines[index]
@@ -186,7 +214,7 @@ class LyricTimeline:
             if not line.text:
                 continue
             if line.end_ms is not None and line.end_ms > line.start_ms:
-                item = self._animated_window(i, duration_ms)
+                item = limit_display_window(self._animated_window(i, duration_ms), self.max_display_ms, self.exit_duration)
                 if item.start_ms <= position_ms < item.end_ms:
                     if self.animation_style == "classic" and not self.scramble_exit:
                         opacity = min(1., (position_ms - item.start_ms) / max(1, item.entry_end_ms - item.start_ms),
@@ -195,16 +223,22 @@ class LyricTimeline:
                     active.append(item)
                 continue
             if self.animation_style != "classic" or self.scramble_exit:
-                item = self._animated_window(i, duration_ms)
+                item = limit_display_window(self._animated_window(i, duration_ms), self.max_display_ms, self.exit_duration)
                 if item.start_ms <= position_ms < item.end_ms and item.end_ms > item.start_ms:
                     active.append(item)
                 continue
-            end = line.start_ms + 6000
+            # None preserves the legacy programmatic default. The UI passes an
+            # explicit cap (6 s by default); zero disables that extra deadline.
+            end = line.start_ms + 6000 if self.max_display_ms is None else float("inf")
+            if self.max_display_ms:
+                end = line.start_ms + self.max_display_ms
             if i + 1 < len(self.lines):
                 following = self.lines[i + 1]
                 end = min(end, following.start_ms + (self.exit_duration if following.text else 0))
             if duration_ms > 0:
                 end = min(end, duration_ms)
+            elif i + 1 == len(self.lines):
+                end = min(end, line.start_ms + 6000)
             age, life = position_ms - line.start_ms, end - line.start_ms
             if life <= 0 or age < 0 or position_ms >= end:
                 continue

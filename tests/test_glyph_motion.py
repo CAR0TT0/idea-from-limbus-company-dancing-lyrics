@@ -223,20 +223,29 @@ class AnimatedDrawingTests(unittest.TestCase):
         overlay = LyricsOverlay(player, prefs)
         overlay.set_document(parse_lrc("[00:01]第一句\n[00:03]第二句"))
         overlay.show()
+        def settled_frame():
+            overlay.grab()
+            for _ in range(200):
+                if overlay.layouts and not overlay._warm_jobs:
+                    break
+                QTest.qWait(10)
+            self.assertTrue(overlay.layouts)
+            self.assertFalse(overlay._warm_jobs)
+            return overlay.grab().toImage()
         try:
             for style in STYLES:
                 prefs.animation_style = style
                 overlay.refresh_preferences()
-                first = overlay.grab().toImage()
+                first = settled_frame()
                 QTest.qWait(40)
                 self.assertEqual(first, overlay.grab().toImage())
                 self.assertFalse(overlay.timer.isActive())
                 player.clock = 1800
                 player.discontinuity.emit()
-                self.assertNotEqual(first, overlay.grab().toImage())
+                self.assertNotEqual(first, settled_frame())
                 player.clock = 3300
                 player.discontinuity.emit()
-                self.assertEqual(first, overlay.grab().toImage())
+                self.assertEqual(first, settled_frame())
             self.assertEqual(player.clock, 3300)
             self.assertFalse(player.playing)
         finally:

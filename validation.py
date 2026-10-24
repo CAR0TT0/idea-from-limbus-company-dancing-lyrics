@@ -107,6 +107,19 @@ class SmokeCheck:
         self.panel.play_demo()
         QTimer.singleShot(2500, self._pause)
 
+    def _overlay_image(self):
+        # Preparation is intentionally incremental. Compare fully prepared
+        # frames at the same paused song position, rather than two empty grabs.
+        from PySide6.QtTest import QTest
+        self.overlay.grab()
+        for _ in range(200):
+            if not self.overlay._warm_jobs:
+                break
+            QTest.qWait(10)
+        if self.overlay._warm_jobs:
+            raise RuntimeError("歌词材质未在集成验证预算内准备完成")
+        return self.overlay.grab().toImage()
+
     def _pause(self):
         self.results["duration_ms"] = self.player.duration
         self.results["decoded_audio_buffers"] = self.buffer_count
@@ -114,12 +127,12 @@ class SmokeCheck:
         self.results["real_audio_analysis"] = self.buffer_count > 5 and self.maximum_energy > .05
         self.player.media.pause()
         self.paused_position = self.player.position()
-        self.paused_frame = self.overlay.grab().toImage()
+        self.paused_frame = self._overlay_image()
         QTimer.singleShot(350, self._seek)
 
     def _seek(self):
         self.results["pause_freezes_clock"] = abs(self.player.position() - self.paused_position) < 1
-        self.results["pause_freezes_frame"] = self.overlay.grab().toImage() == self.paused_frame
+        self.results["pause_freezes_frame"] = self._overlay_image() == self.paused_frame
         self.player.seek(9700)
         QTimer.singleShot(400, self._capture)
 
@@ -136,7 +149,7 @@ class SmokeCheck:
         self._capture_translation()
         self._capture_interface()
         self._capture_themes()
-        image = self.overlay.grab().toImage()
+        image = self._overlay_image()
         image.save(str(self.report_dir / "overlay-transparent.png"))
         preview = QImage(image.size(), QImage.Format.Format_ARGB32)
         preview.fill(QColor("#18272c"))
@@ -194,7 +207,7 @@ class SmokeCheck:
             index = panel.font_combo.findData(family)
             panel.font_combo.setCurrentIndex(index)
             self.app.processEvents()
-            image = self.overlay.grab().toImage()
+            image = self._overlay_image()
             shapes.add(hashlib.sha256(bytes(image.constBits())).hexdigest())
             matches[family] = QFontInfo(lyric_font(panel.prefs.font_family, 32)).family()
             self.overlay.grab().save(str(self.report_dir / f"font-{family.replace(' ', '-')}.png"))
@@ -286,7 +299,7 @@ class SmokeCheck:
             panel.text_style.setCurrentIndex(panel.text_style.findData(style))
             panel.glow_slider.setValue(60)
             self.app.processEvents()
-            picture = self.overlay.grab().toImage()
+            picture = self._overlay_image()
             shapes.add(hashlib.sha256(bytes(picture.constBits())).hexdigest())
             picture.save(str(self.report_dir / f"effect-{style}.png"))
         for index, name in enumerate(("dark", "light")):
@@ -300,11 +313,11 @@ class SmokeCheck:
         saved = panel.store.load()
         self.results["effect_style_changes_rendered_lyrics"] = len(shapes) == 2
         self.results["effect_settings_saved"] = saved.text_style == "glow" and saved.glow_strength == 60
-        picture = self.overlay.grab().toImage()
+        picture = self._overlay_image()
         previous = hashlib.sha256(bytes(picture.constBits())).hexdigest()
         panel.glow_variant.setCurrentIndex(panel.glow_variant.findData("carmen"))
         self.app.processEvents()
-        picture = self.overlay.grab().toImage()
+        picture = self._overlay_image()
         self.results["carmen_changes_rendered_lyrics"] = previous != hashlib.sha256(bytes(picture.constBits())).hexdigest()
         self.results["carmen_saved_and_palette_fixed"] = (panel.store.load().glow_variant == "carmen"
             and not panel.color_button.isEnabled() and panel.glow_slider.isEnabled())
@@ -326,7 +339,7 @@ class SmokeCheck:
         original_theme = panel.prefs.theme
         self.results["theme_checkmark_asset_available"] = not QImage(str(resource_path("assets/check-white.svg"))).isNull()
         visual = {key: value for key, value in asdict(panel.prefs).items() if key != "theme"}
-        frame, position, preview = self.overlay.grab().toImage(), self.player.position(), panel.font_preview.dark
+        frame, position, preview = self._overlay_image(), self.player.position(), panel.font_preview.dark
         self.results["sidebar_branding_updated"] = (panel.creator_label.text().replace("\n", "") == CREATOR
             and panel.version_label.text() == f"版本 {APP_VERSION}" and panel.motto_label.text().replace("\n", " ") == MOTTO)
         sidebar_ok, saved, layouts, icons_ok = True, True, True, True
@@ -377,7 +390,7 @@ class SmokeCheck:
         self.results["special_icon_and_blueprint_assets_available"] = all(
             not QImage(str(resource_path(name))).isNull() for name in ("assets/dante-clock.svg", "assets/special-blueprint.svg"))
         self.results["theme_keeps_lyrics_and_paused_clock"] = (not self.player.playing and self.player.position() == position
-            and self.overlay.grab().toImage() == frame
+            and self._overlay_image() == frame
             and {key: value for key, value in asdict(panel.prefs).items() if key != "theme"} == visual
             and panel.font_preview.dark == preview)
 
@@ -399,9 +412,9 @@ class SmokeCheck:
                 continue
             panel.animation_combo.setCurrentIndex(panel.animation_combo.findData(style))
             self.app.processEvents()
-            first = self.overlay.grab().toImage()
+            first = self._overlay_image()
             self.app.processEvents()
-            frozen &= first == self.overlay.grab().toImage() and not self.overlay.timer.isActive()
+            frozen &= first == self._overlay_image() and not self.overlay.timer.isActive()
             saved &= panel.store.load().animation_style == style
             first.save(str(self.report_dir / f"overlay-{style}.png"))
             center = panel.animation_combo.mapTo(panel.effects_scroll.widget(), panel.animation_combo.rect().center())
@@ -472,9 +485,9 @@ class SmokeCheck:
         overlay.set_document(demo)
         panel.animation_combo.setCurrentIndex(panel.animation_combo.findData("fall_shake"))
         panel.singing_checkbox.setChecked(True)
-        first = overlay.grab().toImage()
+        first = self._overlay_image()
         self.app.processEvents()
-        self.results["singing_freezes_on_paused_song_clock"] = first == overlay.grab().toImage() and not overlay.timer.isActive()
+        self.results["singing_freezes_on_paused_song_clock"] = first == self._overlay_image() and not overlay.timer.isActive()
         self.results["singing_switch_saved"] = panel.store.load().singing_sync is True
         for index, name in enumerate(("dark", "light")):
             panel.preview_background.setCurrentIndex(index)

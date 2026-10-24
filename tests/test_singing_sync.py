@@ -135,15 +135,23 @@ class SingingSyncTests(unittest.TestCase):
         overlay=LyricsOverlay(player,prefs)
         plain=LyricDocument([LyricLine(1000,"你好")],[])
         overlay.set_document(plain);overlay.show()
+        def settled_frame():
+            overlay.grab()
+            for _ in range(100):
+                if overlay.layouts and not overlay._warm_jobs:
+                    break
+                QTest.qWait(10)
+            self.assertFalse(overlay._warm_jobs)
+            return overlay.grab().toImage()
         try:
             overlay.grab();seed,layout=overlay.seed,overlay.layouts[0]
             overlay.set_document(LyricDocument([replace(plain.lines[0],words=(TimedWord(1700,2100,0,2),))],[]))
-            first=overlay.grab().toImage()
+            first=settled_frame()
             self.assertEqual(overlay.seed,seed)
             self.assertIs(overlay.layouts[0],layout)
             QTest.qWait(40);self.assertEqual(overlay.grab().toImage(),first)
-            player.clock=2300;player.discontinuity.emit();self.assertNotEqual(overlay.grab().toImage(),first)
-            player.clock=1800;player.discontinuity.emit();self.assertEqual(overlay.grab().toImage(),first)
+            player.clock=2300;player.discontinuity.emit();self.assertNotEqual(settled_frame(),first)
+            player.clock=1800;player.discontinuity.emit();self.assertEqual(settled_frame(),first)
             self.assertFalse(overlay.timer.isActive())
         finally:
             overlay.hide();overlay.deleteLater()
