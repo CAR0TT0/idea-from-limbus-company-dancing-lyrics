@@ -1,4 +1,4 @@
-"""Build an isolated portable KuGou package from the v0.8.0-beta.1 engine."""
+"""Build an isolated portable KuGou package from the current shared engine."""
 import argparse
 import hashlib
 import importlib.metadata
@@ -10,7 +10,7 @@ import subprocess
 import sys
 import zipfile
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from app_info import KUGOU_VERSION
+from app_info import APP_VERSION, KUGOU_VERSION
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = KUGOU_VERSION
@@ -106,12 +106,12 @@ def main():
             if "dist-info" in str(item) and ("license" in item.name.casefold() or "copying" in item.name.casefold()):
                 shutil.copyfile(distribution.locate_file(item), ready / "licenses" / (name + "-" + item.name))
     with (ready / "THIRD_PARTY_NOTICES.md").open("a", encoding="utf-8") as out:
-        out.write("\n\n酷狗版本补充：基于 Celine258 v0.8.0-beta.1 修改；运行时 Python " + sys.version.split()[0] +
+        out.write("\n\n酷狗版本补充：基于 Celine258 v" + APP_VERSION + " 修改；运行时 Python " + sys.version.split()[0] +
                   "。新增 PyWinRT 3.2.1（MIT），用于 Windows 系统媒体与 OCR；许可保存在 licenses。" +
                   "\nhttps://github.com/pywinrt/pywinrt/tree/v3.2.1\n另包含 pefile 2023.2.7（MIT），只读解析酷狗歌词模块；许可保存在 licenses。" +
                   "\nhttps://github.com/erocarrera/pefile\n酷狗版不安装 BetterNCM。上游归属记录仍予保留。\n")
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
-    info = dict(version=VERSION, base="v0.8.0-beta.1", source_commit=commit, python=sys.version.split()[0],
+    info = dict(version=VERSION, base="v" + APP_VERSION, source_commit=commit, python=sys.version.split()[0],
                 upstream_package_sha256=hashlib.sha256(args.upstream_package.read_bytes()).hexdigest(),
                 exe_sha256=hashlib.sha256((ready / "DancingLyrics-Kugou.exe").read_bytes()).hexdigest(),
                 compatibility="Independent install; runtime interfaces remain subject to client changes; see guide.")

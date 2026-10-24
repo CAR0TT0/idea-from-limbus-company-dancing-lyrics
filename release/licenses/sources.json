@@ -39,5 +39,75 @@
     "pyside6": "6.8.3",
     "numpy": "1.26.4",
     "qtSources": "https://download.qt.io/archive/qt/6.8/6.8.3/single/"
+  },
+  {
+    "file": "pefile-LICENSE",
+    "distribution": "pefile",
+    "version": "2023.2.7",
+    "source": "installed wheel METADATA license",
+    "sha256": "bfd4b5e4f8a99c961fd6f94d708e38396cc146bfe8fbc5d2a86e63aa29fb4208"
+  },
+  {
+    "file": "typing_extensions-LICENSE",
+    "distribution": "typing_extensions",
+    "version": "4.16.0",
+    "source": "installed wheel METADATA license",
+    "sha256": "3b2f81fe21d181c499c59a256c8e1968455d6689d269aa85373bfb6af41da3bf"
+  },
+  {
+    "file": "PyWinRT-MIT.txt",
+    "distribution": "winrt-runtime",
+    "version": "3.2.1",
+    "source": "https://raw.githubusercontent.com/pywinrt/pywinrt/v3.2.1/LICENSE",
+    "sha256": "6e898069e8b3c6d8d23dc70ac7067cc2b7c9db14c36df873026758db82c0891d"
+  },
+  {
+    "file": "PyWinRT-MIT.txt",
+    "distribution": "winrt-Windows.Media.Control",
+    "version": "3.2.1",
+    "source": "https://raw.githubusercontent.com/pywinrt/pywinrt/v3.2.1/LICENSE",
+    "sha256": "6e898069e8b3c6d8d23dc70ac7067cc2b7c9db14c36df873026758db82c0891d"
+  },
+  {
+    "file": "PyWinRT-MIT.txt",
+    "distribution": "winrt-Windows.Media.Ocr",
+    "version": "3.2.1",
+    "source": "https://raw.githubusercontent.com/pywinrt/pywinrt/v3.2.1/LICENSE",
+    "sha256": "6e898069e8b3c6d8d23dc70ac7067cc2b7c9db14c36df873026758db82c0891d"
+  },
+  {
+    "file": "PyWinRT-MIT.txt",
+    "distribution": "winrt-Windows.Foundation",
+    "version": "3.2.1",
+    "source": "https://raw.githubusercontent.com/pywinrt/pywinrt/v3.2.1/LICENSE",
+    "sha256": "6e898069e8b3c6d8d23dc70ac7067cc2b7c9db14c36df873026758db82c0891d"
+  },
+  {
+    "file": "PyWinRT-MIT.txt",
+    "distribution": "winrt-Windows.Foundation.Collections",
+    "version": "3.2.1",
+    "source": "https://raw.githubusercontent.com/pywinrt/pywinrt/v3.2.1/LICENSE",
+    "sha256": "6e898069e8b3c6d8d23dc70ac7067cc2b7c9db14c36df873026758db82c0891d"
+  },
+  {
+    "file": "PyWinRT-MIT.txt",
+    "distribution": "winrt-Windows.Globalization",
+    "version": "3.2.1",
+    "source": "https://raw.githubusercontent.com/pywinrt/pywinrt/v3.2.1/LICENSE",
+    "sha256": "6e898069e8b3c6d8d23dc70ac7067cc2b7c9db14c36df873026758db82c0891d"
+  },
+  {
+    "file": "PyWinRT-MIT.txt",
+    "distribution": "winrt-Windows.Graphics.Imaging",
+    "version": "3.2.1",
+    "source": "https://raw.githubusercontent.com/pywinrt/pywinrt/v3.2.1/LICENSE",
+    "sha256": "6e898069e8b3c6d8d23dc70ac7067cc2b7c9db14c36df873026758db82c0891d"
+  },
+  {
+    "file": "PyWinRT-MIT.txt",
+    "distribution": "winrt-Windows.Storage.Streams",
+    "version": "3.2.1",
+    "source": "https://raw.githubusercontent.com/pywinrt/pywinrt/v3.2.1/LICENSE",
+    "sha256": "6e898069e8b3c6d8d23dc70ac7067cc2b7c9db14c36df873026758db82c0891d"
   }
 ]

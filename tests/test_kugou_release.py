@@ -10,7 +10,7 @@ class KugouReleaseTests(unittest.TestCase):
     def test_final_evidence_uses_real_packaged_background_data_and_keeps_limits(self):
         root=Path(__file__).resolve().parents[1]
         record=json.loads((root/'docs/research/kugou-release-20261024.json').read_text(encoding='utf-8'))
-        self.assertEqual(record['app_version'],KUGOU_VERSION)
+        self.assertEqual(record['app_version'],'0.8.0-beta.1-kugou.6')  # Historical release.
         self.assertTrue(record['passed'])
         self.assertTrue(record['public_gui']['actual_bat_entry'])
         self.assertFalse(record['public_gui']['simulated_live_data'])

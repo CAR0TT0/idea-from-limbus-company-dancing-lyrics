@@ -1,6 +1,8 @@
 # 酷狗音乐版
 
-当前 Windows 修复版为 **0.8.0-beta.1-kugou.6**，由本仓库发布：[下载安装包](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/tag/v0.8.0-beta.1-kugou.6)。基于 CAR0TT0 的 [PR #4](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/pull/4) 继续适配，保留贡献者归属。
+本版新增：在“歌词效果 → 律动与同步”设置“歌词最长显示时间”，默认 6 秒，0–120 秒可调，0 表示不额外限制。时限包含入场和退场，长句可调长或关闭，未知末句仍保留 6 秒兜底；切换效果预设不会重置。纯音乐含作曲／编曲署名时也可隐藏，混有正常歌词时不猜测。长句分批预载，歌词迟到时不重置歌曲进度补播动画。
+
+当前 Windows 修复版为 **0.8.0-beta.2-kugou.1**，由本仓库发布：[下载安装包](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/releases/tag/v0.8.0-beta.2-kugou.1)。基于 CAR0TT0 的 [PR #4](https://github.com/Celine258/idea-from-limbus-company-dancing-lyrics/pull/4) 继续适配，保留贡献者归属。
 
 本次复现并修复了 `Mili` 与 `Mili（ミリー）` 的歌手别名不一致：旧版拒绝有效原生歌词对象，退回读取主窗口，导致最小化后断连。新版同时修复后台读取和别名缓存匹配；现场、翻唱、混音和合唱成员仍严格区分。本机 20.1.51.27967 已检查普通最小化与隐藏到托盘；其他未知歌词结构仍可能需要适配。
 
@@ -18,7 +20,7 @@
 
 修复原生读取停滞时不重新寻找后来创建的桌面歌词视图的问题。朋友电脑的最小化播放尚未实际验收，不能据此判断所有安装均已修复。若仍失败，运行包内 `导出兼容诊断.bat`，提供生成的 `kugou-diagnostic.json`；报告仅包含通道、模块版本目录、窗口状态和失败分类，不记录曲名、歌词正文、账号或本机路径。状态栏区分 32 位客户端、未知结构、权限及无匹配对象，避免只重复提示开启桌面歌词。
 
-基于上游 v0.8.0-beta.1，复用全部歌词绘制、设置、字体、主题、预设和双语逻辑。新适配见 [kugou.py](kugou.py)、[读取助手](kugou_reader.py)、[歌词读取](kugou_lyrics.py)、[自动联动](kugou_startup.py) 与 [包内说明](release/kugou-guide.txt)。
+基于共享引擎 v0.8.0-beta.2，复用全部歌词绘制、设置、字体、主题、预设和双语逻辑。新适配见 [kugou.py](kugou.py)、[读取助手](kugou_reader.py)、[歌词读取](kugou_lyrics.py)、[自动联动](kugou_startup.py) 与 [包内说明](release/kugou-guide.txt)。
 
 `0.8.0-beta.1-kugou.4` 修复中文译名括注造成的原生通道拒绝、最小化后歌词消失，以及句子出现／退场时间。`kugou_identity.py` 只将外文曲名后的中文译名括注视为别名，保留现场、混音、伴奏等版本区别；按原生歌词内容哈希选择缓存，避免不同歌词文件混配。`lrc.py` 与 KRC 解析保留每句结束时间，长句不会固定六秒退场，间奏不会滞留到下一句。播放缓冲时保留文档并冻结，毫秒时钟限制无新读数时的外推。支持普通最小化及隐藏到托盘；日志记录通道切换。
 

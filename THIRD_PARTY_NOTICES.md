@@ -22,6 +22,8 @@ macOS 使用的 [nowplaying-cli](https://github.com/kirtan-shah/nowplaying-cli) 
 | PyInstaller 6.11.1 | 冻结成品与启动引导 | GPLv2，包含允许分发成品的例外；https://pyinstaller.org/en/v6.11.1/license.html |
 | QQ QRC 解码移植 | QQ 本地缓存三重 DES 变体 | MIT，LRC-GET (c) 2026 valenbine / QQMusicDecoder (c) 2023 WXRIW；完整文本见 [qq-qrc-MIT.txt](release/licenses/qq-qrc-MIT.txt) |
 | BetterNCM 1.3.4 | 网易云插件宿主 | GPLv3，https://github.com/std-microblock/chromatic/tree/1.3.4；官方 DLL 单独下载，不装入 ZIP |
+| PyWinRT 3.2.1 | 共享 Windows 成品内的系统媒体、图像与 OCR 接口，主要用于酷狗接入 | MIT，https://github.com/pywinrt/pywinrt/tree/v3.2.1；完整文本见包内 winrt-* 许可 |
+| pefile 2023.2.7 / typing_extensions | 只读解析 PE 与运行类型支持 | MIT / PSF，完整文本见包内相应许可；不写入音乐客户端内存 |
 
 发布包的 `licenses` 文件夹保留上述运行组件的完整许可文本及 Qt 第三方归属记录。
 Mac 包保留独立 framework / dylib 动态库及其符号链接，实际 Python 和各架构 NumPy 许可在构建时从对应运行时收集；不包含 BetterNCM 或 nowplaying-cli 外部二进制。

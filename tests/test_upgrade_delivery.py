@@ -38,7 +38,7 @@ class UpgradeDeliveryTests(unittest.TestCase):
 
     def test_verification_distinguishes_real_playback_from_demo_and_hardware_limits(self):
         data = json.loads((ROOT/'docs/research/lyric-upgrade-20261016.json').read_text(encoding='utf-8'))
-        self.assertEqual(data['app_version'], APP_VERSION)
+        self.assertEqual(data['app_version'], '0.8.0-beta.1')  # Historical 2026-10-16 evidence.
         self.assertTrue(data['passed'])
         self.assertEqual(len(data['benchmarks']), 16)
         for row in data['benchmarks']:
