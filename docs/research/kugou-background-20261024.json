@@ -1,0 +1,125 @@
+{
+  "date": "2026-10-24",
+  "scope": "artist_alias_background_fix",
+  "client_version": "20.1.51.27967",
+  "contribution": "PR #4 by CAR0TT0",
+  "simulated_live_data": false,
+  "root_cause": "SMTC Mili differs from native Mili (ミリー)",
+  "baseline_log_points": [
+    {
+      "phase": "normal",
+      "sample": 0,
+      "mode": "hybrid",
+      "native_status": "no_matching_lyric_object"
+    },
+    {
+      "phase": "normal",
+      "sample": 8,
+      "mode": "hybrid",
+      "native_status": "no_matching_lyric_object"
+    },
+    {
+      "phase": "normal",
+      "sample": 17,
+      "mode": "hybrid",
+      "native_status": "no_matching_lyric_object"
+    },
+    {
+      "phase": "minimized",
+      "sample": 0,
+      "mode": null,
+      "native_status": "no_matching_lyric_object"
+    },
+    {
+      "phase": "minimized",
+      "sample": 8,
+      "mode": null,
+      "native_status": "no_matching_lyric_object"
+    },
+    {
+      "phase": "minimized",
+      "sample": 17,
+      "mode": null,
+      "native_status": "no_matching_lyric_object"
+    },
+    {
+      "phase": "tray_hidden",
+      "sample": 0,
+      "mode": null,
+      "native_status": "no_matching_lyric_object"
+    },
+    {
+      "phase": "tray_hidden",
+      "sample": 8,
+      "mode": null,
+      "native_status": "no_matching_lyric_object"
+    },
+    {
+      "phase": "tray_hidden",
+      "sample": 17,
+      "mode": null,
+      "native_status": "no_matching_lyric_object"
+    },
+    {
+      "phase": "restored",
+      "sample": 0,
+      "mode": "hybrid",
+      "native_status": "no_matching_lyric_object"
+    },
+    {
+      "phase": "restored",
+      "sample": 8,
+      "mode": "hybrid",
+      "native_status": "no_matching_lyric_object"
+    },
+    {
+      "phase": "restored",
+      "sample": 17,
+      "mode": "hybrid",
+      "native_status": "no_matching_lyric_object"
+    }
+  ],
+  "fixed_channels": {
+    "normal": {
+      "samples": 18,
+      "all_native": true,
+      "advancing": true,
+      "position_delta_ms": 3645
+    },
+    "minimized": {
+      "samples": 18,
+      "all_native": true,
+      "advancing": true,
+      "position_delta_ms": 3691
+    },
+    "tray_hidden": {
+      "samples": 18,
+      "all_native": true,
+      "advancing": true,
+      "position_delta_ms": 3731
+    },
+    "restored": {
+      "samples": 18,
+      "all_native": true,
+      "advancing": true,
+      "position_delta_ms": 3688
+    }
+  },
+  "playback_commands": 0,
+  "process_memory_writes": 0,
+  "client_file_writes": 0,
+  "automated_tests": {
+    "run": 468,
+    "seconds": 20.766,
+    "passed": true
+  },
+  "windows_engine": {
+    "passed": true,
+    "checks": 75
+  },
+  "not_verified": [
+    "second_machine",
+    "unrecognized_native_layouts",
+    "frozen_gui_in_this_record"
+  ]
+}

@@ -12,7 +12,7 @@ import urllib.request
 import zlib
 
 from lrc import LyricDocument, LyricLine, TimedWord, parse_lrc, chinese_translation
-from kugou_identity import title_keys
+from kugou_identity import title_keys, titles_match, artists_match
 
 LIMIT = 2 * 1024 * 1024
 KRC_KEY = bytes((64, 71, 97, 119, 94, 50, 116, 71, 81, 54, 49, 45, 206, 210, 110, 105))
@@ -139,7 +139,10 @@ def local_lyrics(snapshot, directories=None, cancelled=lambda: False):
                 valid_names = set(titles)
                 if artist:
                     valid_names = {artist + value for value in titles} | {value + artist for value in titles}
-                if normalized(stem) in valid_names and 0 < path.stat().st_size <= LIMIT:
+                parts = stem.split(" - ", 1)
+                alias_match = (len(parts) == 2 and bool(artist) and artists_match(parts[0], snapshot.artist)
+                               and bool(title_keys(parts[1]) & titles))
+                if (normalized(stem) in valid_names or alias_match) and 0 < path.stat().st_size <= LIMIT:
                     matches.append(path)
         except OSError:
             continue
@@ -176,9 +179,9 @@ def choose_candidate(candidates, snapshot):
     if not isinstance(candidates, list):
         return None
     for row in candidates[:100]:
-        if not isinstance(row, dict) or normalized(row.get("song", "")) != normalized(snapshot.title):
+        if not isinstance(row, dict) or not titles_match(row.get("song", ""), snapshot.title):
             continue
-        if not snapshot.artist or normalized(row.get("singer", "")) != normalized(snapshot.artist):
+        if not snapshot.artist or not artists_match(row.get("singer", ""), snapshot.artist):
             continue
         duration = row.get("duration")
         if isinstance(duration, bool) or not isinstance(duration, (int, float)) or abs(duration - snapshot.duration_ms) > 2500:

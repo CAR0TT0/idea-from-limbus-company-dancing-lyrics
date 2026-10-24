@@ -26,3 +26,26 @@ def title_keys(value):
 
 def titles_match(first, second):
     return bool(title_keys(first) & title_keys(second))
+
+
+def artist_keys(value):
+    """Allow an explicit cross-script name alias, never drop collaborators."""
+    text = unicodedata.normalize("NFKC", str(value)).strip()
+    keys = {normalized(text)}
+    match = re.fullmatch(r"([^()]+?)\s*\(([^()]+)\)", text)
+    if match:
+        base, alias = match.groups()
+        qualifier = re.search(r"\b(?:feat|ft|featuring|with|vs|live|remix|cover|instrumental|acoustic|piano)\b|版|现场|伴奏|翻唱|混音|合唱|合作|原唱|录音", alias, re.I)
+        def scripts(name):
+            return {label for label, pattern in (
+                ("latin", r"[A-Za-z]"), ("han", r"[\u3400-\u9fff]"),
+                ("kana", r"[\u3040-\u30ff]"), ("hangul", r"[\uac00-\ud7af]")) if re.search(pattern, name)}
+        original, translated = scripts(base), scripts(alias)
+        if (not qualifier and original and translated and original.isdisjoint(translated)
+                and not re.search(r"[&+/、,;\d]", alias)):
+            keys.add(normalized(base))
+    return keys - {""}
+
+
+def artists_match(first, second):
+    return bool(artist_keys(first) & artist_keys(second))
